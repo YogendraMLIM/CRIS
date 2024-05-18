@@ -8,10 +8,11 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-dates/initialize';
 import 'react-dates/lib/css/_datepicker.css';
-import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes } from '../../Templates/Template';
-const [FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable,Fullscreen,Print
+import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers } from '../../Templates/Template';
+const [FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print,
 ] = await loadModules(["esri/layers/FeatureLayer", "esri/views/MapView", "esri/Map", "esri/widgets/Zoom", "esri/widgets/ScaleBar",
-    "esri/widgets/Expand", "esri/widgets/BasemapGallery", "esri/core/reactiveUtils", "esri/widgets/Legend", "esri/widgets/LayerList", "esri/smartMapping/renderers/type", "esri/Graphic", "esri/identity/IdentityManager", "esri/geometry", "esri/geometry/SpatialReference", "esri/widgets/FeatureTable","esri/widgets/Fullscreen","esri/widgets/Print"], { css: true });
+    "esri/widgets/Expand", "esri/widgets/BasemapGallery", "esri/core/reactiveUtils", "esri/widgets/Legend", "esri/widgets/LayerList", "esri/smartMapping/renderers/type", "esri/Graphic", "esri/identity/IdentityManager", "esri/geometry", "esri/geometry/SpatialReference", "esri/widgets/FeatureTable", "esri/widgets/Fullscreen", "esri/widgets/Print", "esri/renderers/SimpleRenderer",
+    "esri/symbols/SimpleFillSymbol"], { css: true });
 const ScreenSplit = ({ onLogout }) => {
     const dispatch = useDispatch();
     const handleLogout = async () => {
@@ -34,6 +35,8 @@ const ScreenSplit = ({ onLogout }) => {
     const divisionDropdownRef = useRef(null);
     const sectionDropdownRef = useRef(null);
     const routeDropdownRef = useRef(null);
+    const syncUnSyncMapRef = useRef(null);
+    const [syncUnSyncDropdown, setSyncUnSyncDropdown] = useState(false);
     const [initialMap, setInitialMap] = useState(false);
     const [draggedItem, setDraggedItem] = useState(null);
     const [trackDropdown, setTrackDropdown] = useState(false);
@@ -57,7 +60,6 @@ const ScreenSplit = ({ onLogout }) => {
     const [layerFromMap, setLayerFromMap] = useState([]);
     const [fieldsFromLayer, setFieldsFromLayer] = useState([]);
     const [valueFromLayer, setValueFromLayer] = useState([]);
-    const [typeOfValues, setTypeOfValues] = useState("");
     const [selectedLayer, setSelectedLayer] = useState(null);
     const [mapObject, setMapObject] = useState([]);
     const [railwayNames, setRailwayNames] = useState(null);
@@ -86,10 +88,7 @@ const ScreenSplit = ({ onLogout }) => {
         setStartDate(startDate);
         setEndDate(endDate);
     };
-    let operationalLayers = [{ name: "Weld Fracture", DateField: "fracture_d", DateType: "Date" },
-    { name: "GMT Details", DateField: "gmt_year", DateType: "FinancialYear" },
-    { name: "Speed Restriction", DateField: "date_of_im", DateType: "Date" }
-    ];
+
     const calculateGrid = (count) => {
         let numRows, numCols;
         if (count <= 9) {
@@ -125,7 +124,7 @@ const ScreenSplit = ({ onLogout }) => {
         return { numRows, numCols };
     };
     const { numRows, numCols } = calculateGrid(screens.length);
-//#region API fetching the Zone, Division, Route and Section
+    //#region API fetching the Zone, Division, Route and Section
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -199,7 +198,6 @@ const ScreenSplit = ({ onLogout }) => {
         fetchData();
     }, [railwayZone, railwayDivision, railwayRoute]);
     //#endregion
-
     //#region MapScreens Draggable
     const handleDragStart = (event, index) => {
         setDraggedItem(index);
@@ -212,7 +210,7 @@ const ScreenSplit = ({ onLogout }) => {
         updatedScreens.splice(dropIndex, 0, updatedScreens.splice(draggedItem, 1)[0]);
         setScreens(updatedScreens);
     };
-//#endregion
+    //#endregion
     //#region LoadNewMap Screen 
     const handleTrackInsightes = (item) => (event) => {
         const value = item.value;
@@ -254,6 +252,7 @@ const ScreenSplit = ({ onLogout }) => {
                 setInitialMap(!initialMap);
             } else {
                 setScreens(screens.filter((screen) => screen.value !== value));
+                setMapObject(mapObject.filter((mo) => mo.title !== value));
             }
         }
         setTrackInsightes(updatedTrackInsightes);
@@ -313,6 +312,7 @@ const ScreenSplit = ({ onLogout }) => {
                 setInitialMap(!initialMap);
             } else {
                 setScreens(screens.filter((screen) => screen.value !== value));
+                setMapObject(mapObject.filter((mo) => mo.title !== value));
             }
         }
         setBridgeInsightes(updateBridgeInsightes);
@@ -386,7 +386,7 @@ const ScreenSplit = ({ onLogout }) => {
                 view: initialView
             });
             const fullscreen = new Fullscreen({
-                view:initialView
+                view: initialView
             })
             const scaleBar = new ScaleBar({
                 view: initialView
@@ -406,11 +406,11 @@ const ScreenSplit = ({ onLogout }) => {
                 view: initialView,
                 content: basemapGallery
             });
-            const expandWidget = new Expand({
+            const expandTableWidget = new Expand({
                 view: initialView,
                 content: document.createElement("div"),
                 expandIconClass: "esri-icon-table",
-                expandTooltip: "Expand Feature Table",
+                expandTooltip: "Feature Table",
                 collapseTooltip: "Collapse Feature Table"
             });
             const layerList = new LayerList({
@@ -420,7 +420,15 @@ const ScreenSplit = ({ onLogout }) => {
                 view: initialView,
                 content: layerList
             });
-
+            const print = new Print({
+                view: initialView,
+                printServiceUrl: "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task"
+            });
+            const bgExpandPrint = new Expand({
+                view: initialView,
+                content: print,
+                expandTooltip: "Print Widget",
+            });
             const createFeatureTable = () => {
                 console.log('Feature Table ', featureTable);
                 if (featureTable == null) {
@@ -485,7 +493,6 @@ const ScreenSplit = ({ onLogout }) => {
                 }
 
             }
-
             // // Function to destroy Feature Table
             function destroyFeatureTable() {
                 var container = document.getElementById('layerContainer-0');
@@ -494,20 +501,50 @@ const ScreenSplit = ({ onLogout }) => {
                 // featureTable = null;               
 
             }
-
-            expandWidget.watch(["expanded", "collapsed"], (expanded, collapsed) => {
+            expandTableWidget.watch(["expanded", "collapsed"], (expanded, collapsed) => {
                 if (expanded) {
                     createFeatureTable();
                 } else if (collapsed) {
                     destroyFeatureTable();
                 }
             });
-
-            
-            initialView.ui.add(expandLayerList,"top-right");
+            // Function to close all Expand widgets except the provided one
+            function closeOtherExpands(exceptExpand) {
+                [expandLegend, expandLayerList, bgExpandPrint, bgExpand, expandTableWidget].forEach(expand => {
+                    if (expand !== exceptExpand) {
+                        expand.collapse();
+                    }
+                });
+            }
+            expandLegend.watch('expanded', () => {
+                if (expandLegend.expanded) {
+                    closeOtherExpands(expandLegend);
+                }
+            });
+            expandLayerList.watch('expanded', () => {
+                if (expandLayerList.expanded) {
+                    closeOtherExpands(expandLayerList);
+                }
+            });
+            bgExpandPrint.watch('expanded', () => {
+                if (bgExpandPrint.expanded) {
+                    closeOtherExpands(bgExpandPrint);
+                }
+            });
+            bgExpand.watch('expanded', () => {
+                if (bgExpand.expanded) {
+                    closeOtherExpands(bgExpand)
+                }
+            })
+            expandTableWidget.watch('expanded', () => {
+                if (expandTableWidget.expanded) {
+                    closeOtherExpands(expandTableWidget)
+                }
+            })
+            initialView.ui.add(expandLayerList, "top-right");
             initialView.ui.add(expandLegend, "top-right");
-            initialView.ui.add(fullscreen,"top-right");
-            initialView.ui.add(expandWidget, "top-left");
+            initialView.ui.add(fullscreen, "top-right");
+            initialView.ui.add(expandTableWidget, "top-left");
             initialView.ui.add(bgExpand, "top-left");
             initialView.ui.add(zoom, "bottom-right");
             initialView.ui.add(scaleBar, "bottom-left");
@@ -555,11 +592,58 @@ const ScreenSplit = ({ onLogout }) => {
             console.error(error);
         }
     };
+    const handleSyncUnSyncMap = () => {
+        setSyncUnSyncDropdown(!syncUnSyncDropdown);
+    };
+    // const handleSyncUnSyncMapObject = (mapObj) => (event) => {
+    //     debugger
+    //     let id = mapObj.id;
+    //     let isChecked = event.target.checked;
+    //     const updateMapObject = mapObject.map((mapObj) =>
+    //         mapObj.id === id ? { ...mapObj, checked: isChecked } : mapObj
+    //     );
+    //     let filteredMapObject;
+    //     if(isChecked === false){
+    //         filteredMapObject = mapObject.filter((mo) => mo.id !== id);
+    //     }else{
+    //         filteredMapObject = mapObject;
+    //     }
+    //     try {
+    //         if (filteredMapObject.length > 0)
+
+    //             for (const view of filteredMapObject.map(mo => mo.newView)) {
+    //                 const handle = reactiveUtils.watch(
+    //                     () => [view.interacting, view.viewpoint],
+    //                     ([interacting, viewpoint]) => {
+    //                         // Only print the new zoom value when the view is stationary
+    //                         if (interacting) {
+    //                             setActive(view);
+    //                             sync(view);
+    //                         }
+
+    //                     }
+    //                 );
+    //             }
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+    //     setMapObject(updateMapObject)
+    // }
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (syncUnSyncMapRef.current && !syncUnSyncMapRef.current.contains(event.target)) {
+                setSyncUnSyncDropdown(false);
+            }
+        };
+        window.addEventListener('click', handleClickOutside);
+        return () => {
+            window.removeEventListener('click', handleClickOutside);
+        };
+    }, []);
     useEffect(() => {
         synchronizeMaps()
     }, [active, mapObject])
     useEffect(() => {
-
         const loadMapForNewScreens = async () => {
             const clusterConfig = {
                 type: "cluster",
@@ -577,8 +661,8 @@ const ScreenSplit = ({ onLogout }) => {
                         }
                     }]
                 },
-                clusterMinSize: "24px",
-                clusterMaxSize: "48px",
+                clusterMinSize: "18px",
+                clusterMaxSize: "36px",
                 labelingInfo: [{
                     deconflictionStrategy: "none",
                     labelExpressionInfo: {
@@ -586,7 +670,7 @@ const ScreenSplit = ({ onLogout }) => {
                     },
                     symbol: {
                         type: "text",
-                        color: "#004a5d",
+                        color: "white",
                         font: {
                             weight: "bold",
                             family: "Noto Sans",
@@ -610,7 +694,6 @@ const ScreenSplit = ({ onLogout }) => {
                             components: ["attribution"]
                         }
                     });
-
                     var trackfeaturelayer = new FeatureLayer({
                         url: trackLayer,
                         renderer: Trackanalysisrenderer,
@@ -618,18 +701,18 @@ const ScreenSplit = ({ onLogout }) => {
                         popupTemplate: trackPopUpTemplate
                     });
                     await Promise.all([trackfeaturelayer.load()]);
-
                     var featurelayer = new FeatureLayer({
                         url: screen.url,
                         title: screen.title,
                         renderer: screen.renderer,
                         popupTemplate: screen.popupTemplate,
                     });
-
                     if (!screen.renderer) {
                         generateRenderer(newView, featurelayer, screen.field)
                     }
                     if (screen.id === 1)
+                        featurelayer.featureReduction = clusterConfig;
+                    if (screen.id === 6)
                         featurelayer.featureReduction = clusterConfig;
                     await Promise.all([featurelayer.load()]);
                     map.addMany([trackfeaturelayer, featurelayer,]);
@@ -644,7 +727,8 @@ const ScreenSplit = ({ onLogout }) => {
                     });
                     const expandLegend = new Expand({
                         view: newView,
-                        content: legendData
+                        content: legendData,
+                        expandTooltip: "Legend",
                     });
                     const basemapGallery = new BasemapGallery({
                         view: newView,
@@ -652,37 +736,36 @@ const ScreenSplit = ({ onLogout }) => {
                     });
                     const bgExpand = new Expand({
                         view: newView,
-                        content: basemapGallery
+                        content: basemapGallery,
+                        expandTooltip: "BaseMap Gallery",
                     });
                     const layerList = new LayerList({
                         view: newView
                     });
                     const expandLayerList = new Expand({
                         view: newView,
-                        content: layerList
+                        content: layerList,
+                        expandTooltip: "Layer List",
                     });
-                    const expandWidget = new Expand({
+                    const expandTableWidget = new Expand({
                         view: newView,
                         content: document.createElement("div"),
                         expandIconClass: "esri-icon-table",
-                        expandTooltip: "Expand Feature Table",
+                        expandTooltip: "Feature Table",
                         collapseTooltip: "Collapse Feature Table"
                     });
                     const fullscreen = new Fullscreen({
-                        view:newView
+                        view: newView
                     })
                     const print = new Print({
                         view: newView,
-                        printServiceUrl:"https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task"
+                        printServiceUrl: "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task"
                     });
-        
                     const bgExpandPrint = new Expand({
                         view: newView,
-                        content: print
+                        content: print,
+                        expandTooltip: "Print Widget",
                     });
-        
-        
-        
                     const createFeatureTable = () => {
                         console.log('Feature Table ', featureTable);
                         if (featureTable == null) {
@@ -747,12 +830,11 @@ const ScreenSplit = ({ onLogout }) => {
                         }
 
                     }
-
                     function destroyFeatureTable() {
                         var container = document.getElementById(`layerContainer-${screen.id}`);
                         container.style.display = 'none';
                     }
-                    expandWidget.watch(["expanded", "collapsed"], (expanded, collapsed) => {
+                    expandTableWidget.watch(["expanded", "collapsed"], (expanded, collapsed) => {
                         if (expanded) {
                             createFeatureTable();
                         } else if (collapsed) {
@@ -769,23 +851,56 @@ const ScreenSplit = ({ onLogout }) => {
                             }
                         }
                     );
-                    // Add the expand instance to the ui
 
+                    // Function to close all Expand widgets except the provided one
+                    function closeOtherExpands(exceptExpand) {
+                        [expandLegend, expandLayerList, bgExpandPrint, bgExpand, expandTableWidget].forEach(expand => {
+                            if (expand !== exceptExpand) {
+                                expand.collapse();
+                            }
+                        });
+                    }
+                    expandLegend.watch('expanded', () => {
+                        if (expandLegend.expanded) {
+                            closeOtherExpands(expandLegend);
+                        }
+                    });
+
+                    expandLayerList.watch('expanded', () => {
+                        if (expandLayerList.expanded) {
+                            closeOtherExpands(expandLayerList);
+                        }
+                    });
+
+                    bgExpandPrint.watch('expanded', () => {
+                        if (bgExpandPrint.expanded) {
+                            closeOtherExpands(bgExpandPrint);
+                        }
+                    });
+                    bgExpand.watch('expanded', () => {
+                        if (bgExpand.expanded) {
+                            closeOtherExpands(bgExpand)
+                        }
+                    })
+                    expandTableWidget.watch('expanded', () => {
+                        if (expandTableWidget.expanded) {
+                            closeOtherExpands(expandTableWidget)
+                        }
+                    })
                     newView.extent = featurelayer.fullExtent;
                     newView.ui.add(expandLayerList, "top-right")
                     newView.ui.add(expandLegend, "top-right");
                     newView.ui.add(fullscreen, "top-left");
                     newView.ui.add(bgExpandPrint, "top-right");
-                    newView.ui.add(expandWidget, "top-left");
+                    newView.ui.add(expandTableWidget, "top-left");
                     newView.ui.add(bgExpand, "top-left");
                     newView.ui.add(zoom, "bottom-right");
                     newView.ui.add(scaleBar, "bottom-left");
-
                     await newView.when();
                     let id = screen.id;
-                    let newMapObj = { id, newView };
+                    let title= screen.title;
+                    let newMapObj = { id, title, newView, checked:true };
                     setMapObject(prevMapObj => [...prevMapObj, newMapObj]);
-
                 }
             });
             prevScreensRef.current = screens;
@@ -814,18 +929,16 @@ const ScreenSplit = ({ onLogout }) => {
         }
 
         return result;
-    }
+    };
     const formatDate = (date) => {
         var d = new Date(date),
             month = '' + (d.getMonth() + 1),
             day = '' + d.getDate(),
             year = d.getFullYear();
-
         if (month.length < 2)
             month = '0' + month;
         if (day.length < 2)
             day = '0' + day;
-
         return [year, month, day].join('-');
     }
     const getDateFilterQuery = (filterLayer) => {
@@ -853,26 +966,21 @@ const ScreenSplit = ({ onLogout }) => {
         let routeQuery = "";
         let kmpostQuery = ""
         let finalQuery = "";
-
         if (railwayNames && railwayNames.filter(sc => sc.isSelected === true).length > 0) {
             railwayQuery = "railway in ('" + railwayNames.filter(sc => sc.isSelected === true).map(sc => sc.value).join("','") + "')";
         }
-
         if (divisionNames && divisionNames.filter(sc => sc.isSelected === true).length > 0) {
             divisionQuery = "division in ('" + divisionNames.filter(sc => sc.isSelected === true).map(sc => sc.value).join("','") + "')";
         }
-
         if (sectionNames && sectionNames.filter(sc => sc.isSelected === true).length > 0) {
             sectionQuery = "section in ('" + sectionNames.filter(sc => sc.isSelected === true).map(sc => sc.value).join("','") + "')";
         }
-
         if (routeNames && routeNames.filter(sc => sc.isSelected === true).length > 0) {
             routeQuery = "route in ('" + routeNames.filter(sc => sc.isSelected === true).map(sc => sc.value).join("','") + "') ";
         }
         if (KMFromSelected && KMToSelected) {
             kmpostQuery = " km_from >  " + KMFromSelected + " and km_to < " + KMToSelected;
         }
-
         for (const screen of mapObject) {
             let filterLayer = screen.newView.map.allLayers.items.filter(ly => operationalLayers.map(olyr => olyr.name).includes(ly.title))
             console.log(finalQuery);
@@ -885,7 +993,7 @@ const ScreenSplit = ({ onLogout }) => {
                 if (filterLayer.length > 0) filterLayer[0].definitionExpression = finalQuery;
             }
         }
-    }, [mapObject, sectionNames, routeNames, railwayNames, divisionNames, KMFromSelected, KMToSelected, startDate, endDate]);// date filter to be applied
+    }, [mapObject, sectionNames, routeNames, railwayNames, divisionNames, KMFromSelected, KMToSelected, startDate, endDate]);
     const handleFilterZoneDivSecRoute = () => {
         setOpenZoneDivFilter(!openZoneDivFilter);
         setOpenQueryBuilder(false);
@@ -904,9 +1012,9 @@ const ScreenSplit = ({ onLogout }) => {
         setKMFromSelected("");
         setKMToSelected("");
         for (const screen of mapObject) {
-            // Update definitionExpression in each item of mapObject
             let filterLayer = screen.newView.map.allLayers.items.filter(ly => operationalLayers.map(olyr => olyr.name).includes(ly.title))
             if (filterLayer.length > 0) filterLayer[0].definitionExpression = "1=1";
+            screen.newView.zoom = 8;
         }
     };
     const handleKMFromChange = (e) => {
@@ -918,7 +1026,7 @@ const ScreenSplit = ({ onLogout }) => {
         setKMToSelected(selectedKMTo);
     }
     //#endregion
-    //#region  Handle Zone Select 
+    //#region Handle Zone Select 
     const handleZoneDropDown = () => {
         setZoneDropDown(!zoneDropDown)
     };
@@ -978,7 +1086,7 @@ const ScreenSplit = ({ onLogout }) => {
         }
     }, []);
     //#endregion
-    //#region  Handle Section Select 
+    //#region Handle Section Select 
     const handleSectionDropDown = () => {
         setSectionDropDown(!sectionDropDown);
     };
@@ -1072,99 +1180,124 @@ const ScreenSplit = ({ onLogout }) => {
     };
     const handleSelectFieldFromLayer = async (e) => {
         let selectedField = e.target.value;
-        console.log(`This is the selected field: ${selectedField}`);
         setSelectedLayerField(selectedField);
         await Promise.all([selectedLayer.load()]);
         if (selectedLayer) {
             let query = selectedLayer.createQuery();
+            query.where = "loc_error='NO ERROR'"
             query.outFields = [selectedField];
             try {
                 setValueFromLayer([]);
                 const result = await selectedLayer.queryFeatures(query);
                 let type = result.fields[1].type;
                 setFieldType(type);
-                console.log(`Type of value : ${type}`);
                 const uniqueValues = new Set();
                 result.features.forEach((feature) => {
                     const attributeValue = feature.attributes[selectedField];
-                    uniqueValues.add(attributeValue);
+                    if (attributeValue) {
+                        uniqueValues.add(attributeValue);
+                    }
                 });
-                setValueFromLayer([...uniqueValues]);
-                const firstValue = uniqueValues.values().next().value;
-                const valueType = typeof firstValue;
-                console.log(`Type of the value : ${valueType}`)
-                setTypeOfValues(valueType);
+                const sortedValues = [...uniqueValues].sort();
+                const comparator = (a, b) => {
+                    if (typeof a === 'number' && typeof b === 'number') {
+                        return a - b; // Sort numbers in ascending order
+                    } else if (typeof a === 'string' && typeof b === 'string') {
+                        return a.localeCompare(b); // Sort strings alphabetically
+                    } else if (isDate(a) && isDate(b)) {
+                        return new Date(a) - new Date(b); // Sort dates
+                    } else {
+                        // Handle other types (fallback to string comparison)
+                        return String(a).localeCompare(String(b));
+                    }
+                };
+                const isDate = (value) => {
+                    return (new Date(value) !== "Invalid Date" && !isNaN(new Date(value)));
+                };
+                sortedValues.sort(comparator);
+                setValueFromLayer(sortedValues);
             } catch (error) {
                 console.error('Error querying features:', error);
             }
         }
     };
     const handleQueryData = async () => {
+        debugger
         let filteredScreen = screens.filter((screen) => screen.label === selectedTrackInsightesScreen);
+        if (!selectedLayer) {
+            return toast.error("Please Select the Screen and Layer");
+        }
         let screenId = filteredScreen[0].id;
         let selectedField = selectedLayerField;
         let selectedOperator = signSelected;
         let selectedValue = selectedLayerValue;
+        if (!screenId || !selectedField || !selectedOperator || !selectedValue) {
+            return toast.error("Please Select the Field, Sign and Value")
+        }
         let query = selectedLayer.createQuery();
-        console.log(`Type of the field : ${typeOfValues}`)
-        if (typeOfValues === "number") {
-            if (fieldType === "date") {
-                query.where = `${selectedField} ${selectedOperator} DATE '${formatDate(parseInt(selectedValue))}'`;
-            } else {
-                query.where = selectedField + " " + selectedOperator + " " + selectedValue + "";
-            }
-        } else {
-            query.where = selectedField + " = '" + selectedValue + "'";
+        if (fieldType === "integer" || fieldType === "double") {
+            query.where = selectedField + " " + selectedOperator + " " + selectedValue + "";
+        }
+        else if (fieldType === "date") {
+            query.where = `${selectedField} ${selectedOperator} DATE '${formatDate(parseInt(selectedValue))}'`;
+        }
+        else {
+            query.where = selectedField + " " + selectedOperator + "'" + selectedValue + "'";
         }
         try {
             const result = await selectedLayer.queryFeatures(query);
-            let type = result.features[0].geometry.type;
-            // console.log(`This is the result :${JSON.stringify(result)}`)
-            let filteredMapObj = mapObject && mapObject.filter((mapOb) => mapOb.id === screenId);
-            let view = filteredMapObj[0].newView;
-            view.graphics.removeAll();
-            result.features.forEach(function (feature) {
-                var symbolPoint = {
-                    type: "simple-marker",
-                    color: "yellow",
-                    size: 8
-                };
-                var symbolLine = {
-                    type: "simple-line",
-                    style: "solid",
-                    color: "aqua",
-                    width: 5,
-                    outline: {
+            if (result.features.length !== 0) {
+                let type = result.features[0].geometry.type;
+                let filteredMapObj = mapObject && mapObject.filter((mapOb) => mapOb.id === screenId);
+                let view = filteredMapObj[0].newView;
+                view.graphics.removeAll();
+
+                result.features.forEach(function (feature) {
+                    var symbolPoint = {
+                        type: "simple-marker",
+                        color: "yellow",
+                        size: 15
+                    };
+                    var symbolLine = {
+                        type: "simple-line",
+                        style: "solid",
                         color: "aqua",
-                        width: 5
+                        width: 5,
+                        outline: {
+                            color: "aqua",
+                            width: 5
+                        }
+                    };
+                    let symbol;
+                    if (type === "point") {
+                        symbol = symbolPoint
+                    } else {
+                        symbol = symbolLine
                     }
-                };
-                let symbol;
-                if (type === "point") {
-                    symbol = symbolPoint
-                } else {
-                    symbol = symbolLine
-                }
-                var graphic = new Graphic({
-                    geometry: feature.geometry,
-                    symbol: symbol
+                    var graphic = new Graphic({
+                        geometry: feature.geometry,
+                        symbol: symbol
+                    });
+                    view.graphics.add(graphic);
                 });
-                view.graphics.add(graphic);
-            });
-            let graphicsExtent = null;
-            if (type === "point") {
-                graphicsExtent = result.features.filter(f => f.geometry.x !== 0).reduce((accExtent, feature) => {
-                    let _ext = new geometry.Extent(feature.geometry.x, feature.geometry.y, feature.geometry.x, feature.geometry.y, new SpatialReference({ wkid: 4326 }));
-                    return accExtent ? accExtent.union(_ext) : _ext;
-                }, null);
+                let graphicsExtent = null;
+                if (type === "point") {
+                    graphicsExtent = result.features.filter(f => f.geometry.x !== 0).reduce((accExtent, feature) => {
+                        let _ext = new geometry.Extent(feature.geometry.x, feature.geometry.y, feature.geometry.x, feature.geometry.y, new SpatialReference({ wkid: 4326 }));
+                        return accExtent ? accExtent.union(_ext) : _ext;
+                    }, null);
+                } else {
+                    graphicsExtent = result.features.filter(f => f.geometry.paths[0].length > 0).reduce((extent, feature) => {
+                        return extent ? extent.union(feature.geometry.extent) : feature.geometry.extent;
+                    }, null);
+                }
+                if (graphicsExtent) {
+                    view.goTo(graphicsExtent);
+                }
             } else {
-                graphicsExtent = result.features.filter(f => f.geometry.paths[0].length > 0).reduce((extent, feature) => {
-                    return extent ? extent.union(feature.geometry.extent) : feature.geometry.extent;
-                }, null);
+                toast("No Features Found");
             }
-            if (graphicsExtent) {
-                view.goTo(graphicsExtent);
-            }
+
         } catch (error) {
             console.log(`Error while querrying features : ${error}`);
         }
@@ -1175,11 +1308,13 @@ const ScreenSplit = ({ onLogout }) => {
         setSelectedLayerField("");
         setSignSelected("");
         setSelectedLayerValue("");
+        setSelectedLayer(null);
         setLayerFromMap([]);
         setFieldsFromLayer([]);
         setValueFromLayer([]);
         mapObject.forEach((screen) => {
             screen.newView.graphics.removeAll();
+            screen.newView.zoom = 8;
         });
 
     };
@@ -1303,6 +1438,41 @@ const ScreenSplit = ({ onLogout }) => {
                         </div>
                         <div className="splitScreen-Header-Two">
                             <div className="splitScreen-Header-Two-ScreenDivision">
+                                {/* <div className="trackdropDown" ref={syncUnSyncMapRef}>
+                                    <button
+                                        className='btndropTrackBridge'
+                                        id="btnDropDown"
+                                        onClick={handleSyncUnSyncMap}
+                                    >
+                                        <span>SyncMap</span>
+                                        <svg width="30px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g id="SVGRepo_bgCarrier" strokeWidth="0" />
+                                            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
+                                            <g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#015cb2" /> </g>
+                                        </svg>
+                                    </button>
+                                    {
+                                        syncUnSyncDropdown &&
+                                        <div className="trackDropDownContent">
+                                            {
+                                                mapObject && mapObject.map((mapObj) => (
+                                                    <label
+                                                        key={mapObj.id}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            value={mapObj.title}
+                                                            onChange={handleSyncUnSyncMapObject(mapObj)}
+                                                            checked={mapObj.checked}
+                                                            style={{ marginRight: "8px" }}
+                                                        />
+                                                        {mapObj.title}
+                                                    </label>
+                                                ))
+                                            }
+                                        </div>
+                                    }
+                                </div> */}
                                 <div className="trackdropDown" ref={trackInsightesDropdownRef}>
                                     <button
                                         className='btndropTrackBridge'
@@ -1724,7 +1894,6 @@ const ScreenSplit = ({ onLogout }) => {
                                                     onFocusChange={focusedInput => setFocusedInput(focusedInput)}
                                                     isOutsideRange={() => false} // Optional: Allow selecting dates beyond current month
                                                     displayFormat="DD/MM/YYYY" // Optional: Date display format
-
                                                 />
                                             </div>
                                             <div className="dropdownBtnDvi">

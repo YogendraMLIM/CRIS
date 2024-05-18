@@ -71,7 +71,7 @@ function App() {
       <UserContextProvider>
         <ToastContainer
           position="bottom-center"
-          autoClose={1000}
+          autoClose={2000}
           hideProgressBar={true}
           newestOnTop={true}
           closeOnClick
@@ -91,7 +91,7 @@ function App() {
       <UserContextProvider>
         <ToastContainer
           position="bottom-center"
-          autoClose={500}
+          autoClose={800}
           hideProgressBar={true}
           newestOnTop={true}
           closeOnClick

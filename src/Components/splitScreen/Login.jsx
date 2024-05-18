@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { loadModules } from 'esri-loader';
 import { toast } from "react-toastify";
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useDispatch } from "react-redux";
 import {
   Save_User,
 } from "../../actions";
 
-const portalUrl = process.env.PORTAL_URL // Replace with your portal URL
-const APP_ID = process.env.APP_ID_LOCAL; //local
-// const APP_ID = process.env.APP_ID_LIVE
+const portalUrl = 'https://mlinfomap.org/portal' // Replace with your portal URL
+const APP_ID = '1lgeokxQxgzybNvt' //local
+// const APP_ID = 'sIHzj0uOHUBmzQta' //live
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,10 +25,9 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const username = email.trim();
     const pwd = password.trim();
-
+    
     if (!username || !pwd) {
       toast.error("Please enter both username and password.");
       return;

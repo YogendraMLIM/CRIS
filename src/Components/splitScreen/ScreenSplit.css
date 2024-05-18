@@ -73,7 +73,7 @@
   justify-content: flex-end;
 }
 
-.splitScreen-Header-Two-ScreenDivision{
+.splitScreen-Header-Two-ScreenDivision {
   width: 80%;
   height: inherit;
   display: flex;
@@ -185,7 +185,7 @@
 }
 
 
-.splitScreen-Header-Two-FilterDropdown{
+.splitScreen-Header-Two-FilterDropdown {
   width: 200px;
   height: inherit;
   display: flex;
@@ -193,21 +193,21 @@
   justify-content: space-around;
   align-items: center;
   position: relative;
-  padding-right:10px;
+  padding-right: 10px;
 }
 
 /* .SVG{
   cursor: pointer;
 
 } */
-.filterIcon{
+.filterIcon {
   width: 30px;
   height: 30px;
-  transition: 0.3s; 
+  transition: 0.3s;
   cursor: pointer;
 }
 
-.queryBuilderDropdown{
+.queryBuilderDropdown {
   width: 345px;
   height: 350px;
   position: absolute;
@@ -217,7 +217,8 @@
   z-index: 2;
   box-shadow: 0 0 2px rgb(131, 131, 131);
 }
-.styleBreakdropDown{
+
+.styleBreakdropDown {
   width: 320px;
   height: 245px;
   position: absolute;
@@ -228,7 +229,7 @@
   box-shadow: 0 0 2px rgb(131, 131, 131);
 }
 
-.queryBuilderDropdown-Header{
+.queryBuilderDropdown-Header {
   width: 100%;
   height: 30px;
   background-color: #005fa2;
@@ -237,14 +238,14 @@
   align-items: center;
 }
 
-.queryBuilderDropdown-Header>h3{
+.queryBuilderDropdown-Header>h3 {
   color: white;
   font-size: 18px;
   font-weight: bold;
   margin-left: 10px;
 }
 
-.queryBuilderDropdown-Header>span{
+.queryBuilderDropdown-Header>span {
   width: 22px;
   height: 22px;
   border: 2px solid white;
@@ -260,7 +261,7 @@
   cursor: pointer;
 }
 
-.queryBuilderDropdown-Content{
+.queryBuilderDropdown-Content {
   width: 100%;
   height: calc(100%-22px);
   position: relative;
@@ -268,7 +269,7 @@
   flex-direction: column;
 }
 
-.queryBuilderDropdown-Content-Track{
+.queryBuilderDropdown-Content-Track {
   width: 100%;
   height: 50px;
   display: flex;
@@ -277,13 +278,13 @@
   padding: 8px 3px 0px 5px;
 }
 
-.queryBuilderDropdown-Content-Track>span{
+.queryBuilderDropdown-Content-Track>span {
   font-size: 16px;
   color: #005fa2;
   font-weight: bold;
 }
 
-.queryBuilderDropdown-Content-Track>select{
+.queryBuilderDropdown-Content-Track>select {
   width: 200px;
   height: 25px;
   color: black;
@@ -291,7 +292,7 @@
   outline: none;
 }
 
-.breakInput{
+.breakInput {
   width: 100px;
   height: 25px;
   border-radius: 10px;
@@ -300,15 +301,15 @@
   text-align: center;
 }
 
-.queryBuilderDropdown-Content-button{
- width: 100%;
- height: 50px;
- display: flex;
- justify-content: center;
- align-items: center;
+.queryBuilderDropdown-Content-button {
+  width: 100%;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.btnQuery{
+.btnQuery {
   width: 150px;
   height: 30px;
   border: none;
@@ -320,13 +321,13 @@
   margin: 0 5px;
 }
 
-.queryBuilderDropdown-Content-button>button:hover{
+.queryBuilderDropdown-Content-button>button:hover {
   background-color: #0477ca;
   transition: 1s ease;
 }
 
 
-.filterZoneDivSecRoute{
+.filterZoneDivSecRoute {
   width: 400px;
   height: 350px;
   position: absolute;
@@ -337,7 +338,7 @@
   box-shadow: 0 0 2px rgb(131, 131, 131);
 }
 
-.filterZonedivSecRoute-Header{
+.filterZonedivSecRoute-Header {
   width: 100%;
   height: 30px;
   background-color: #005fa2;
@@ -346,14 +347,14 @@
   align-items: center;
 }
 
-.filterZonedivSecRoute-Header>h3{
+.filterZonedivSecRoute-Header>h3 {
   color: white;
   font-size: 18px;
   font-weight: bold;
   margin-left: 10px;
 }
 
-.filterZonedivSecRoute-Header>span{
+.filterZonedivSecRoute-Header>span {
   width: 22px;
   height: 22px;
   border: 2px solid white;
@@ -369,15 +370,11 @@
   cursor: pointer;
 }
 
-.filterZoneDivSecRoute-Content{
+.filterZoneDivSecRoute-Content {
   width: 100%;
   height: inherit;
   display: flex;
   flex-direction: column;
-}
-
-.classBrakStyle{
-
 }
 
 .dropdown {
@@ -502,7 +499,7 @@
   cursor: pointer;
 }
 
-.dropdownDateDiv{
+.dropdownDateDiv {
   width: 100%;
   height: 40px;
   display: flex;
@@ -511,22 +508,24 @@
   margin: 5px 0px;
   padding: 8px 5px 0px 5px;
 }
-.DateInput_input{
+
+.DateInput_input {
   font-size: 12px;
 }
 
-.dropdownDateDiv>span{
+.dropdownDateDiv>span {
   color: rgb(4, 90, 160);
   font-size: 16px;
   font-weight: bold;
   margin: 0 4px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-.dateRangePicker{
+
+.dateRangePicker {
   height: 30px;
 }
 
-.dropdownBtnDvi{
+.dropdownBtnDvi {
   width: 100%;
   height: 40px;
   margin: 25px 0 2px 0;
@@ -535,23 +534,25 @@
   align-items: center;
 }
 
-.kmpostdiv{
+.kmpostdiv {
   width: 140px;
   height: 40px;
   /* border: .1px solid red; */
 }
 
-.fpost{
+.fpost {
   width: 100%;
   height: inherit;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.fpost>span{
+
+.fpost>span {
   color: rgb(4, 90, 160);
 }
-.fpost>select{
+
+.fpost>select {
   width: 80px;
   border-radius: 8px;
 }
@@ -675,7 +676,7 @@
   cursor: pointer;
 }
 
-.layerContainer{
+.layerContainer {
   position: absolute;
   display: none;
   bottom: 0;
@@ -690,44 +691,62 @@
 /*------- Media query for screen size 1024 & 1440px ------*/
 @media screen and (max-width: 1440px) {
   .filterIcon {
-    width: 25px; 
-    height: 25px; 
+    width: 25px;
+    height: 25px;
   }
 }
 
 
 @media screen and (max-width: 1024px) {
   .filterIcon {
-    width: 20px; 
-    height: 20px; 
+    width: 20px;
+    height: 20px;
   }
+
+.bridgeDropDown{
+  width:150px;
+  margin: 0px 4px;
+}
+
+.trackdropDown{
+  width: 150px;
+  margin: 0px 4px;
+}
+
+.btndropTrackBridge>span{
+  font-size: 14px;
+}
+
   /* .mapView-div-header {
     width: 250px;
     left: 15%;
   } */
 }
+
 .DateInput_input {
   font-size: 14px !important;
   line-height: 16px !important;
 }
-.DateInput{
+
+.DateInput {
   width: 100px !important;
 }
 
-.esri-view-width-xsmall .esri-expand--auto .esri-expand__container--expanded{
+.esri-view-width-xsmall .esri-expand--auto .esri-expand__container--expanded {
   position: relative !important;
 }
 
 .esri-view-width-xsmall .esri-ui-top-right .esri-expand--auto .esri-expand__container--expanded,
- .esri-view-width-xsmall .esri-ui-bottom-right .esri-expand--auto .esri-expand__container--expanded{
+.esri-view-width-xsmall .esri-ui-bottom-right .esri-expand--auto .esri-expand__container--expanded {
   width: 100% !important;
   margin-top: 0px !important;
- }
+}
 
- .esri-view-width-xsmall .esri-expand--auto .esri-expand__mask--expanded {
+.esri-view-width-xsmall .esri-expand--auto .esri-expand__mask--expanded {
   background-color: transparent !important;
 
 }
+
 .esri-view-width-xsmall .esri-expand--auto .esri-expand__container--expanded .esri-expand__panel {
   padding: 2px 0px 2px 0px !important;
 }
@@ -740,18 +759,27 @@
   z-index: unset !important;
 }
 
-.esri-ui .esri-popup { 
+.esri-ui .esri-popup {
   z-index: 10 !important;
+  top: 40px;
 }
+
 .esri-expand__content {
   z-index: 2 !important;
 }
-.esri-view-width-less-than-medium .esri-popup__main-container {
+
+/* .esri-view-width-less-than-medium .esri-popup__main-container {
   max-height: 300px !important;
+  height: 240 !important;
   min-height: 200px !important;
-}
+} */
+
 .esri-view-height-less-than-medium .esri-popup__main-container {
   max-width: 280px !important;
-  width: unset !important;
-  min-width: 215px !important;
+  width: 220 !important;
+  min-width: 150px !important;
+}
+
+.esri-view {
+  margin: 0 2px 2px 0 !important;
 }
