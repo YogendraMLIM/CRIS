@@ -653,7 +653,7 @@ const weldFractureReportPopUpTemplate = {
     ]
 };
 export const operationalLayers = [
-    { name: "Rail Weld Fracture", DateField: "date___time_of_fracture", DateType: "Date" },
+    { name: "Rail Weld Fracture", DateField: "date_time_of_fracture", DateType: "Date" },
     { name: "GMT Details", DateField: "gmt_year", DateType: "FinancialYear" },
     { name: "Speed Restriction", DateField: "date_of_im", DateType: "FinancialYear" },
     { name: "Level Crossing", DateField: "rail_painting_date", DateType: "FinancialYear" },

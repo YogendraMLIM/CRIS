@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, } from "react-router-dom";
-import ScreenSplit from "./Components/splitScreen/ScreenSplit";
+import SplitScreen from "./Components/SplitScreen/SplitScreen";
 import UserContextProvider from './context/UserContextProvider';
 import { useSelector, useDispatch } from "react-redux";
 import { ToastContainer } from "react-toastify";
@@ -11,7 +11,7 @@ import moment from "moment";
 import Config from "./Config";
 import { Remove_User } from "./actions";
 import './index.css';
-import Login from "./Components/splitScreen/Login";
+import Login from "./Components/SplitScreen/Login";
 const override = {
   display: "block",
   margin: "0 auto",
@@ -100,7 +100,7 @@ function App() {
           pauseOnHover={false}
         />
         <Routes>
-          <Route path="/" name="Home" element={<ScreenSplit />} />
+          <Route path="/" name="Home" element={ <SplitScreen />} />
         </Routes>
       </UserContextProvider>
     );

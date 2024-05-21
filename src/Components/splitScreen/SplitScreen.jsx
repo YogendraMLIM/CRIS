@@ -1,35 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { loadModules } from 'esri-loader';
-import './ScreenSplit.css';
+import './SplitScreen.css';
 import { DateRangePicker } from 'react-dates';
 import { Remove_User } from "../../actions";
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
-import { alpha, styled } from '@mui/material/styles';
-import { blue} from '@mui/material/colors';
-import Switch from '@mui/material/Switch';
+import BlueSwitch from '../Custome/BlueSwitch';
 import $ from 'jquery';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-dates/initialize';
 import moment from 'moment';
 import 'react-dates/lib/css/_datepicker.css';
-import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers, operators, commonFields,screenRelatedFields } from '../../Templates/Template';
+import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers, operators, commonFields, screenRelatedFields } from '../../Templates/Template';
 const [FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print,
 ] = await loadModules(["esri/layers/FeatureLayer", "esri/views/MapView", "esri/Map", "esri/widgets/Zoom", "esri/widgets/ScaleBar",
     "esri/widgets/Expand", "esri/widgets/BasemapGallery", "esri/core/reactiveUtils", "esri/widgets/Legend", "esri/widgets/LayerList", "esri/smartMapping/renderers/type", "esri/Graphic", "esri/identity/IdentityManager", "esri/geometry", "esri/geometry/SpatialReference", "esri/widgets/FeatureTable", "esri/widgets/Fullscreen", "esri/widgets/Print", "esri/renderers/SimpleRenderer",
     "esri/symbols/SimpleFillSymbol"], { css: true });
-    const BlueSwitch = styled(Switch)(({ theme }) => ({
-        '& .MuiSwitch-switchBase.Mui-checked': {
-          color: blue[200],
-          '&:hover': {
-            backgroundColor: alpha(blue[200], theme.palette.action.hoverOpacity),
-          },
-        },
-        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-          backgroundColor: blue[200],
-        },
-      }));
-const ScreenSplit = ({ onLogout }) => {
+const SplitScreen = ({ onLogout }) => {
     const dispatch = useDispatch();
     const handleLogout = async () => {
         dispatch(Remove_User());
@@ -623,7 +610,7 @@ const ScreenSplit = ({ onLogout }) => {
     };
     const teardownWatchers = () => {
         watchersRef.current.forEach(handle => handle.remove());
-        watchersRef.current = []; 
+        watchersRef.current = [];
     };
     const handleSyncUnSyncMap = (e) => {
         let sync = e.target.checked;
@@ -640,7 +627,7 @@ const ScreenSplit = ({ onLogout }) => {
         return () => {
             teardownWatchers();
         };
-    }, [active, mapObject,isSyncEnabled])
+    }, [active, mapObject, isSyncEnabled])
     useEffect(() => {
         const loadMapForNewScreens = async () => {
             const clusterConfig = {
@@ -923,21 +910,18 @@ const ScreenSplit = ({ onLogout }) => {
         const nextYear = year + 1;
         return `${year}-${nextYear.toString().substring(2)}`;
     }
-    // Generate financial years within the range
     const generateFinancialYears = (DateFrom, DateTo) => {
         const result = [];
-
-        // Determine the financial year for the start and end dates
         const startYear = DateFrom.getMonth() >= 3 ? DateFrom.getFullYear() : DateFrom.getFullYear() - 1;
         const endYear = DateTo.getMonth() >= 3 ? DateTo.getFullYear() : DateTo.getFullYear() - 1;
-
-        // Loop through the range of years
         for (let year = startYear; year <= endYear; year++) {
-            result.push(getFinancialYear(new Date(year, 3, 1))); // Assuming financial year starts from April
+            result.push(getFinancialYear(new Date(year, 3, 1)));
         }
 
         return result;
     };
+    const months = moment.months();
+    const years = Array.from({ length: 100 }, (_, i) => moment().year() - i);
     const formatDate = (date) => {
         var d = new Date(date),
             month = '' + (d.getMonth() + 1),
@@ -950,17 +934,14 @@ const ScreenSplit = ({ onLogout }) => {
         return [year, month, day].join('-');
     }
     const getDateFilterQuery = (filterLayer) => {
-        //GET DATE FILTER QUERY BY LAYER TITLE AND DATE SELECTED
         let DateQuery = "";
-        //start end date selected
         if (!startDate || !endDate) {
             return DateQuery;
         }
         let opLyrDetails = operationalLayers.filter(opLyr => opLyr.name == filterLayer.title)[0]
-        if (opLyrDetails.DateType == "Date") {// DATE BETWEEN START AND END
+        if (opLyrDetails.DateType == "Date") {
             DateQuery = opLyrDetails.DateField + " BETWEEN Date '" + startDate.format("YYYY-MM-DD") + "' AND Date '" + endDate.format("YYYY-MM-DD") + "'";
-        } else {// DATE IN (FINANCIAL YEAR)
-            // Output the financial years within the range
+        } else {
             const financialYears = generateFinancialYears(startDate._d, endDate._d);
             console.log(financialYears);
             DateQuery = opLyrDetails.DateField + " IN  ('" + financialYears.join("','") + "')"
@@ -1661,13 +1642,13 @@ const ScreenSplit = ({ onLogout }) => {
                                 </div>
                             </div>
                             <div className="splitScreen-Header-Two-FilterDropdown">
-                            <BlueSwitch 
-                            title='Map Sync/UnSync'
-                            checked={isSyncEnabled}
-                            onChange={handleSyncUnSyncMap} 
-                            color="warning"
-                            className='mapSyncSwitcher'
-                            />
+                                <BlueSwitch
+                                    title='Map Sync/UnSync'
+                                    checked={isSyncEnabled}
+                                    onChange={handleSyncUnSyncMap}
+                                    color="warning"
+                                    className='mapSyncSwitcher'
+                                />
                                 <img className='filterIcon' title='Query Builder' style={{ filter: "invert(100%)", color: "white" }} src='/cris/images/querys.png' alt='query.png' onClick={handleQueryBuilderDropdown} />
                                 {
                                     openQueryBuilder &&
@@ -2048,42 +2029,42 @@ const ScreenSplit = ({ onLogout }) => {
                                                     displayFormat="DD/MM/YYYY" // Optional: Date display format
                                                 /> */}
                                                 <DateRangePicker
-                startDate={startDate}
-                startDateId="start_date"
-                endDate={endDate}
-                endDateId="end_date"
-                onDatesChange={handleDatesChange}
-                focusedInput={focusedInput}
-                onFocusChange={focusedInput => setFocusedInput(focusedInput)}
-                isOutsideRange={() => false} // Allow selecting any dates
-                displayFormat="DD/MM/YYYY" // Display format
-                showClearDates={true} // Optional: Show a clear dates button
-                numberOfMonths={1} // Optional: Show only one month at a time
-                renderMonthElement={({ month, onMonthSelect, onYearSelect }) => (
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <select
-                            value={month.month()}
-                            onChange={(e) => onMonthSelect(month, e.target.value)}
-                        >
-                            {moment.months().map((label, value) => (
-                                <option value={value} key={value}>
-                                    {label}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            value={month.year()}
-                            onChange={(e) => onYearSelect(month, e.target.value)}
-                        >
-                            {Array.from({ length: 100 }, (_, i) => moment().year() - i).map(year => (
-                                <option value={year} key={year}>
-                                    {year}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                )}
-            />
+                                                    startDate={startDate}
+                                                    startDateId="start_date"
+                                                    endDate={endDate}
+                                                    endDateId="end_date"
+                                                    onDatesChange={handleDatesChange}
+                                                    focusedInput={focusedInput}
+                                                    onFocusChange={focusedInput => setFocusedInput(focusedInput)}
+                                                    isOutsideRange={() => false}
+                                                    displayFormat="DD/MM/YYYY"
+                                                    showClearDates={true}
+                                                    numberOfMonths={1}
+                                                    renderMonthElement={({ month, onMonthSelect, onYearSelect }) => (
+                                                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                                            <select
+                                                                value={month.month()}
+                                                                onChange={(e) => onMonthSelect(month, e.target.value)}
+                                                            >
+                                                                {moment.months().map((label, value) => (
+                                                                    <option value={value} key={value}>
+                                                                        {label}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <select
+                                                                value={month.year()}
+                                                                onChange={(e) => onYearSelect(month, e.target.value)}
+                                                            >
+                                                                {Array.from({ length: 100 }, (_, i) => moment().year() - i).map(year => (
+                                                                    <option value={year} key={year}>
+                                                                        {year}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    )}
+                                                />
                                             </div>
                                             <div className="dropdownBtnDvi">
                                                 <button className='btnQuery' onClick={handleResetFilterZoneDivRoute}>Reset</button>
@@ -2216,4 +2197,4 @@ const ScreenSplit = ({ onLogout }) => {
         </div>
     )
 }
-export default ScreenSplit;
+export default SplitScreen;
