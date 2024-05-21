@@ -655,10 +655,10 @@ const weldFractureReportPopUpTemplate = {
 export const operationalLayers = [
     { name: "Rail Weld Fracture", DateField: "date___time_of_fracture", DateType: "Date" },
     { name: "GMT Details", DateField: "gmt_year", DateType: "FinancialYear" },
-    { name: "Speed Restriction", DateField: "date_of_im", DateType: "Date" },
-    { name: "Level Crossing", DateField: "", DateType: "" },
-    { name: "Track Network Distribution", DateField: "", DateType: "" },
-    { name: "Weld Fracture Report", DateField: "", DateType: "" }
+    { name: "Speed Restriction", DateField: "date_of_im", DateType: "FinancialYear" },
+    { name: "Level Crossing", DateField: "rail_painting_date", DateType: "FinancialYear" },
+    { name: "Track Network Distribution", DateField: "laying_month", DateType: "FinancialYear" },
+    { name: "Weld Fracture Report", DateField: "date_of_welding", DateType: "Date" }
 ];
 export const TrackInsightes = [
     { id: 1, label: "Rail Weld Fracture", value: "Rail Weld Fracture", url: "https://mlinfomap.org/server/rest/services/RailWeldFractureAnalysis/MapServer/0", renderer: railWeldFractureRenderer, popupTemplate: railWeldFracturePopUpTemplate, title: "Rail Weld Fracture", checked: false },

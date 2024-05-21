@@ -11,6 +11,7 @@ import Switch from '@mui/material/Switch';
 import $ from 'jquery';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-dates/initialize';
+import moment from 'moment';
 import 'react-dates/lib/css/_datepicker.css';
 import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers, operators, commonFields,screenRelatedFields } from '../../Templates/Template';
 const [FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print,
@@ -1795,7 +1796,7 @@ const ScreenSplit = ({ onLogout }) => {
                                     openZoneDivFilter &&
                                     <div className="filterZoneDivSecRoute">
                                         <div className="filterZonedivSecRoute-Header">
-                                            <h3>Filter </h3><span onClick={handleZoneDivSecRouteClose}>X</span>
+                                            <h3>Custome Filter </h3><span onClick={handleZoneDivSecRouteClose}>X</span>
                                         </div>
                                         <div className="filterZoneDivSecRoute-Content">
                                             <div className="dropdown">
@@ -2035,7 +2036,7 @@ const ScreenSplit = ({ onLogout }) => {
                                             </div>
                                             <div className='dropdownDateDiv'>
                                                 <span>Date Range :</span>
-                                                <DateRangePicker
+                                                {/* <DateRangePicker
                                                     startDate={startDate}
                                                     startDateId="start_date"
                                                     endDate={endDate}
@@ -2045,7 +2046,44 @@ const ScreenSplit = ({ onLogout }) => {
                                                     onFocusChange={focusedInput => setFocusedInput(focusedInput)}
                                                     isOutsideRange={() => false} // Optional: Allow selecting dates beyond current month
                                                     displayFormat="DD/MM/YYYY" // Optional: Date display format
-                                                />
+                                                /> */}
+                                                <DateRangePicker
+                startDate={startDate}
+                startDateId="start_date"
+                endDate={endDate}
+                endDateId="end_date"
+                onDatesChange={handleDatesChange}
+                focusedInput={focusedInput}
+                onFocusChange={focusedInput => setFocusedInput(focusedInput)}
+                isOutsideRange={() => false} // Allow selecting any dates
+                displayFormat="DD/MM/YYYY" // Display format
+                showClearDates={true} // Optional: Show a clear dates button
+                numberOfMonths={1} // Optional: Show only one month at a time
+                renderMonthElement={({ month, onMonthSelect, onYearSelect }) => (
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <select
+                            value={month.month()}
+                            onChange={(e) => onMonthSelect(month, e.target.value)}
+                        >
+                            {moment.months().map((label, value) => (
+                                <option value={value} key={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            value={month.year()}
+                            onChange={(e) => onYearSelect(month, e.target.value)}
+                        >
+                            {Array.from({ length: 100 }, (_, i) => moment().year() - i).map(year => (
+                                <option value={year} key={year}>
+                                    {year}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+            />
                                             </div>
                                             <div className="dropdownBtnDvi">
                                                 <button className='btnQuery' onClick={handleResetFilterZoneDivRoute}>Reset</button>
@@ -2053,12 +2091,12 @@ const ScreenSplit = ({ onLogout }) => {
                                         </div>
                                     </div>
                                 }
-                                <img className='filterIcon' title='Style Break' src="/cris/images/styleIcon.png" alt="filter.png" onClick={handleStyleBreak} />
+                                <img className='filterIcon' title='Style Renderer' src="/cris/images/styleIcon.png" alt="filter.png" onClick={handleStyleBreak} />
                                 {
                                     openStyleBreak &&
                                     <div className="styleBreakdropDown">
                                         <div className="queryBuilderDropdown-Header">
-                                            <h3>Style Class</h3><span onClick={handleStyleBreakClose}>X</span>
+                                            <h3>Style Renderer</h3><span onClick={handleStyleBreakClose}>X</span>
                                         </div>
                                         <div className="queryBuilderDropdown-Content">
                                             <div className="queryBuilderDropdown-Content-Track">
