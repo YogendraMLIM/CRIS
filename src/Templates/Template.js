@@ -503,7 +503,7 @@ const levelCrossingClassBreak = [
             type: "simple-marker",
             style: "circle",
             color: "red",
-            size:6,
+            size: 6,
         },
         label: "< 1 Lac"
     },
@@ -513,7 +513,7 @@ const levelCrossingClassBreak = [
         symbol: {
             type: "simple-marker",
             style: "circle",
-            size:6,
+            size: 6,
             color: "green",
         },
         label: "> 1 Lac"
@@ -594,7 +594,6 @@ const weldFractureReportPopUpTemplate = {
     title: "Weld Fracture Report",
     content: "<table class='table table-striped'>" +
         "<tr><td>Type Of Route</td><td class='popup-cell'>{routeclass}}</td></tr>" +
-        "<tr><td>Fracture Date</td><td class='popup-cell'>{date__time_of_fracture}}</td></tr>" +
         "<tr><td>Welding Date</td><td class='popup-cell'>{date_of_welding}}</td></tr>" +
         "<tr><td>Railway</td><td class='popup-cell'>{railway}</td></tr>" +
         "<tr><td>Division</td><td class='popup-cell'>{division}</td></tr>" +
@@ -654,18 +653,18 @@ const weldFractureReportPopUpTemplate = {
     ]
 };
 export const operationalLayers = [
-{ name: "Rail Weld Fracture", DateField: "date__time_of_fracture", DateType: "Date" },
-{ name: "GMT Details", DateField: "gmt_year", DateType: "FinancialYear" },
-{ name: "Speed Restriction", DateField: "date_of_im", DateType: "Date" },
-{ name: "Level Crossing", DateField: "", DateType: "" },
-{ name: "Track Network Distribution", DateField: "", DateType: "" },
-{ name: "Weld Fracture Report", DateField: "", DateType: "" }
+    { name: "Rail Weld Fracture", DateField: "date___time_of_fracture", DateType: "Date" },
+    { name: "GMT Details", DateField: "gmt_year", DateType: "FinancialYear" },
+    { name: "Speed Restriction", DateField: "date_of_im", DateType: "Date" },
+    { name: "Level Crossing", DateField: "", DateType: "" },
+    { name: "Track Network Distribution", DateField: "", DateType: "" },
+    { name: "Weld Fracture Report", DateField: "", DateType: "" }
 ];
 export const TrackInsightes = [
-    { id: 1, label: "Rail Weld Fracture", value: "Rail Weld Fracture", url: "https://mlinfomap.org/server/rest/services/Trial_Weld_Fracture__2/MapServer/0", renderer: railWeldFractureRenderer, popupTemplate: railWeldFracturePopUpTemplate, title: "Rail Weld Fracture", checked: false },
+    { id: 1, label: "Rail Weld Fracture", value: "Rail Weld Fracture", url: "https://mlinfomap.org/server/rest/services/RailWeldFractureAnalysis/MapServer/0", renderer: railWeldFractureRenderer, popupTemplate: railWeldFracturePopUpTemplate, title: "Rail Weld Fracture", checked: false },
     { id: 2, label: "GMT Details", value: "GMT Details", url: "https://mlinfomap.org/server/rest/services/GMT_Details_Event/MapServer/0", renderer: gmtClassBreaksRenderer, popupTemplate: GMTPopupTemplate, field: "gmt", title: "GMT Details", checked: false },
     { id: 3, label: "Speed Restriction", value: "Speed Restriction", url: "https://mlinfomap.org/server/rest/services/Speed_Restriction_Event/MapServer/0", renderer: speedclassBreaksRenderer, popupTemplate: speedPopUpTemplate, field: "speed", title: "Speed Restriction", checked: false },
-    { id: 4, label: "Level Crossing", value: "Level Crossing", url: "https://mlinfomap.org/server/rest/services/LevelCrossing/MapServer/0", renderer: levelCrossingRenderer, popupTemplate: levelCrossingPopUpTemplate, field: "tvu", title:"Level Crossing", checked: false },
+    { id: 4, label: "Level Crossing", value: "Level Crossing", url: "https://mlinfomap.org/server/rest/services/LevelCrossing/MapServer/0", renderer: levelCrossingRenderer, popupTemplate: levelCrossingPopUpTemplate, field: "tvu", title: "Level Crossing", checked: false },
     { id: 5, label: "Track Network Distribution", value: "Track Network Distribution", url: "https://mlinfomap.org/server/rest/services/TrackNetworkDistribution/MapServer/0", popupTemplate: trackNetworkDistributionPopUpTemplate, field: "rail_section", title: "Track Network Distribution", checked: false },
     { id: 6, label: "Weld Fracture Report", value: "Weld Fracture Report", url: "https://mlinfomap.org/server/rest/services/WeldFractureReport/MapServer/0", renderer: weldFractureReportRenderer, popupTemplate: weldFractureReportPopUpTemplate, title: "Weld Fracture Report", checked: false },
     { id: 7, label: "Permissible Speed Restriction", value: "Permissible Speed Restriction", url: "https://mlinfomap.org/server/rest/services/PermanentSpeedRestrictions/MapServer/0", renderer: permissibleSpeedclassBreaksRenderer, popupTemplate: permissibleSpeedPopUpTemplate, field: "maximum_permissible_speed", title: "Permissible Speed Restriction", checked: false },
@@ -753,3 +752,41 @@ export const trackPopUpTemplate = {
         },
     ]
 }
+export const operators = [
+    { id: 1, label: "greater than", value: ">" },
+    { id: 2, label: "less than", value: "<" },
+    { id: 3, label: "equal to", value: "=" },
+]
+export const commonFields = [
+    { label: "Railway", value: "railway" },
+    { label: "Division", value: "division" },
+    { label: "Route", value: "route" },
+    { label: "Section", value: "section" },
+    { label: "Type of Route", value: "routeclass" },
+]
+const railWeldFractureFields = [
+    { label: "Fracture Date", value: "date___time_of_fracture" },
+]
+const gmtDetailsFields = [
+    { label: "GMT", value: "gmt" },
+]
+const speedRestrictionFields = [
+    { label: "Speed", value: "speed" },
+]
+const levelCrossingFields = [
+    { label: "TVU", value: "tvu" },
+]
+const trackNetworkFields = [
+    { label: "Rail Section", value: "rail_section" },
+]
+const weldFractureReportFields = [
+    { label: "Welding Date", value: "date_of_welding" }
+]
+export const screenRelatedFields = [
+    { label: "RailWeldFractureAnalysis", fields: railWeldFractureFields },
+    { label: "GMT Details Event", fields: gmtDetailsFields },
+    { label: "Speed Restriction Event", fields: speedRestrictionFields },
+    { label: "LevelCrossing", fields: levelCrossingFields },
+    { label: "TrackNetworkDistribution", fields: trackNetworkFields },
+    { label: "WeldFractureReport", fields: weldFractureReportFields },
+]

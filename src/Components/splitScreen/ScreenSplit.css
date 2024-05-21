@@ -128,7 +128,7 @@
   align-items: flex-start;
   box-shadow: 0 0 5px rgb(156, 156, 156);
   overflow-y: auto;
-  z-index: 3;
+  z-index: 11;
 }
 
 
@@ -165,7 +165,7 @@
   align-items: flex-start;
   box-shadow: 0 0 5px rgb(156, 156, 156);
   overflow-y: auto;
-  z-index: 3;
+  z-index: 11;
 }
 
 .bridgeDropDownContent>label {
@@ -186,7 +186,7 @@
 
 
 .splitScreen-Header-Two-FilterDropdown {
-  width: 200px;
+  width: 270px;
   height: inherit;
   display: flex;
   flex-direction: row;
@@ -284,12 +284,87 @@
   font-weight: bold;
 }
 
-.queryBuilderDropdown-Content-Track>select {
+.dropdown-Content-track{
+  width: 200px;
+  height: 25px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 4px silver;
+}
+
+.selectDiv {
   width: 200px;
   height: 25px;
   color: black;
   border-radius: 10px;
-  outline: none;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  border: .1px solid rgb(116, 116, 116);
+  background: white;
+  position: relative;
+}
+
+.selectedDivButton {
+  width: 100%;
+  height: 100%;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  border: none;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-left: 4px;
+  overflow: hidden;
+  background: white;
+  text-wrap: nowrap;
+}
+
+.selectDivOption {
+  position: absolute;
+  top: 33px;
+  right: 4px;
+  width: 200px;
+  max-height: 150px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: flex-start;
+  background-color: rgb(255, 255, 255);
+  box-shadow: 0 0 4px silver;
+  z-index: 1;
+}
+
+.top1 {
+  top: 83px !important;
+}
+
+.top2 {
+  top: 134px !important;
+}
+
+.top3{
+  top: 184px !important;
+}
+
+.top4{
+  top: 233px !important;
+}
+.selectDivOption>span {
+  width: 100%;
+  height: 25px;
+  padding-left: 4px;
+  text-wrap: nowrap;
+  cursor: pointer;
+}
+
+.selectDivOption>span:hover {
+  background: #005fa2;
+  color: white;
 }
 
 .breakInput {
@@ -703,19 +778,19 @@
     height: 20px;
   }
 
-.bridgeDropDown{
-  width:150px;
-  margin: 0px 4px;
-}
+  .bridgeDropDown {
+    width: 150px;
+    margin: 0px 4px;
+  }
 
-.trackdropDown{
-  width: 150px;
-  margin: 0px 4px;
-}
+  .trackdropDown {
+    width: 150px;
+    margin: 0px 4px;
+  }
 
-.btndropTrackBridge>span{
-  font-size: 14px;
-}
+  .btndropTrackBridge>span {
+    font-size: 14px;
+  }
 
   /* .mapView-div-header {
     width: 250px;
@@ -774,11 +849,11 @@
   min-height: 200px !important;
 } */
 
-.esri-view-height-less-than-medium .esri-popup__main-container {
+/* .esri-view-height-less-than-medium .esri-popup__main-container {
   max-width: 280px !important;
   width: 220 !important;
   min-width: 150px !important;
-}
+} */
 
 .esri-view {
   margin: 0 2px 2px 0 !important;

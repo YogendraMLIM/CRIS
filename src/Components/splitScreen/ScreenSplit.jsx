@@ -5,10 +5,12 @@ import { DateRangePicker } from 'react-dates';
 import { Remove_User } from "../../actions";
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
+import Switch from '@mui/material/Switch';
+import $ from 'jquery';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-dates/initialize';
 import 'react-dates/lib/css/_datepicker.css';
-import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers } from '../../Templates/Template';
+import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers, operators, commonFields,screenRelatedFields } from '../../Templates/Template';
 const [FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print,
 ] = await loadModules(["esri/layers/FeatureLayer", "esri/views/MapView", "esri/Map", "esri/widgets/Zoom", "esri/widgets/ScaleBar",
     "esri/widgets/Expand", "esri/widgets/BasemapGallery", "esri/core/reactiveUtils", "esri/widgets/Legend", "esri/widgets/LayerList", "esri/smartMapping/renderers/type", "esri/Graphic", "esri/identity/IdentityManager", "esri/geometry", "esri/geometry/SpatialReference", "esri/widgets/FeatureTable", "esri/widgets/Fullscreen", "esri/widgets/Print", "esri/renderers/SimpleRenderer",
@@ -24,6 +26,7 @@ const ScreenSplit = ({ onLogout }) => {
     let selectionIdCount = 0;
     let candidate;
     let featureTable;
+    let selectedSign = "";
     const API_BASE_URL = "https://mlinfomap.org/cris_datamgmt_api";
     const trackLayer = "https://mlinfomap.org/server/rest/services/Rail_Track/MapServer/0";
     const [startDate, setStartDate] = useState(null);
@@ -35,8 +38,14 @@ const ScreenSplit = ({ onLogout }) => {
     const divisionDropdownRef = useRef(null);
     const sectionDropdownRef = useRef(null);
     const routeDropdownRef = useRef(null);
-    const syncUnSyncMapRef = useRef(null);
-    const [syncUnSyncDropdown, setSyncUnSyncDropdown] = useState(false);
+    const [trackInsighteScreenDropdown, setTrackInsighteScreenDropdown] = useState(false);
+    const [trackInsighteLayerDropdown, setTrackInsighteLayerDropdown] = useState(false)
+    const [trackInsighteFieldDropdown, setTrackInsighteFieldDropdown] = useState(false);
+    const [trackInsighteSignDropdown, setTrackInsighteSignDropdown] = useState(false);
+    const [trackInsighteValueDropdown, setTrackInsighteValueDropdown] = useState(false);
+    const [trackScreenRendererDropdown, setTrackScreenRendererDropdown] = useState(false);
+    const [trackLayerRendererDropdown, setTrackLayerRendererDropdown] = useState(false);
+    const [trackFieldRendererDropdown, setTrackFieldRendererDropdown] = useState(false);
     const [initialMap, setInitialMap] = useState(false);
     const [draggedItem, setDraggedItem] = useState(null);
     const [trackDropdown, setTrackDropdown] = useState(false);
@@ -55,10 +64,11 @@ const ScreenSplit = ({ onLogout }) => {
     const [selectedTrackInsightesScreen, setSelectedTrackInsightesScreen] = useState("");
     const [selectedLayerFromMap, setSelectedLayerFromMap] = useState("");
     const [selectedLayerField, setSelectedLayerField] = useState("");
-    const [signSelected, setSignSelected] = useState("=");
+    const [signSelected, setSignSelected] = useState("");
+    const [signLabel, setSignLabel] = useState("");
     const [selectedLayerValue, setSelectedLayerValue] = useState("");
     const [layerFromMap, setLayerFromMap] = useState([]);
-    const [fieldsFromLayer, setFieldsFromLayer] = useState([]);
+    const [displayField, setDisplayField] = useState("");
     const [valueFromLayer, setValueFromLayer] = useState([]);
     const [selectedLayer, setSelectedLayer] = useState(null);
     const [mapObject, setMapObject] = useState([]);
@@ -74,12 +84,15 @@ const ScreenSplit = ({ onLogout }) => {
     const [fieldsFromLayerStyle, setFieldsFromLayerStyle] = useState([]);
     const [viewId, setViewId] = useState(null);
     const [map, setMap] = useState(null);
+    const [isSyncEnabled, setIsSyncEnabled] = useState(false);
     const [KMFromSelected, setKMFromSelected] = useState("");
     const [KMToSelected, setKMToSelected] = useState("");
     const [active, setActive] = useState(null);
     const [fieldType, setFieldType] = useState("");
     const [trackInsightes, setTrackInsightes] = useState(TrackInsightes);
     const [bridgeInsightes, setBridgeInsightes] = useState(BridgeInsightes);
+    const [operator, setOperator] = useState(operators);
+    const [commonField, setCommonField] = useState(commonFields);
     const [screens, setScreens] = useState([
         { id: 0, label: "", value: "", url: "" }
     ]);
@@ -215,6 +228,7 @@ const ScreenSplit = ({ onLogout }) => {
     const handleTrackInsightes = (item) => (event) => {
         const value = item.value;
         screenId = item.id;
+
         const isChecked = event.target.checked;
         const updatedTrackInsightes = trackInsightes.map((trackInsighte) =>
             trackInsighte.value === value ? { ...trackInsighte, checked: screens.length === 9 ? false : isChecked } : trackInsighte
@@ -256,6 +270,7 @@ const ScreenSplit = ({ onLogout }) => {
             }
         }
         setTrackInsightes(updatedTrackInsightes);
+        esriPopUpUpdateSizes();
     };
     const handleTrackInsightesDropdown = () => {
         setTrackDropdown(!trackDropdown)
@@ -272,7 +287,6 @@ const ScreenSplit = ({ onLogout }) => {
         };
     }, []);
     const handleBridgeInsightes = (bridgeItem) => (event) => {
-        debugger
         const value = bridgeItem.value;
         screenId = bridgeItem.id;
         const isChecked = event.target.checked;
@@ -316,6 +330,7 @@ const ScreenSplit = ({ onLogout }) => {
             }
         }
         setBridgeInsightes(updateBridgeInsightes);
+        esriPopUpUpdateSizes();
     };
     const handleBridgeInsightesDropdown = () => {
         setBridgeDropdown(!bridgeDropdown);
@@ -556,66 +571,28 @@ const ScreenSplit = ({ onLogout }) => {
         };
     }, [initialMap]);
     // Function to synchronize map viewpoints
-    const sync = (source) => {
-        try {
-            if (!active || !active.viewpoint || active !== source) {
-                return;
-            }
-
-            mapObject.map(mo => mo.newView).forEach((view) => {
-                if (view !== active) {
-                    view.viewpoint = active.viewpoint;
-                }
-            });
-        } catch (error) {
-            console.log(error)
-        }
-    };
-    // Function to synchronize maps
-    const synchronizeMaps = () => {
-        try {
-            if (mapObject.length > 0)
-                for (const view of mapObject.map(mo => mo.newView)) {
-                    const handle = reactiveUtils.watch(
-                        () => [view.interacting, view.viewpoint],
-                        ([interacting, viewpoint]) => {
-                            // Only print the new zoom value when the view is stationary
-                            if (interacting) {
-                                setActive(view);
-                                sync(view);
-                            }
-
-                        }
-                    );
-                }
-        } catch (error) {
-            console.error(error);
-        }
-    };
-    const handleSyncUnSyncMap = () => {
-        setSyncUnSyncDropdown(!syncUnSyncDropdown);
-    };
-    // const handleSyncUnSyncMapObject = (mapObj) => (event) => {
-    //     debugger
-    //     let id = mapObj.id;
-    //     let isChecked = event.target.checked;
-    //     const updateMapObject = mapObject.map((mapObj) =>
-    //         mapObj.id === id ? { ...mapObj, checked: isChecked } : mapObj
-    //     );
-    //     let filteredMapObject;
-    //     if(isChecked === false){
-    //         filteredMapObject = mapObject.filter((mo) => mo.id !== id);
-    //     }else{
-    //         filteredMapObject = mapObject;
-    //     }
+    // const sync = (source) => {
     //     try {
-    //         if (filteredMapObject.length > 0)
+    //         if (!active || !active.viewpoint || active !== source) {
+    //             return;
+    //         }
 
-    //             for (const view of filteredMapObject.map(mo => mo.newView)) {
+    //         mapObject.map(mo => mo.newView).forEach((view) => {
+    //             if (view !== active) {
+    //                 view.viewpoint = active.viewpoint;
+    //             }
+    //         });
+    //     } catch (error) {
+    //         console.log(error)
+    //     }
+    // };
+    // const synchronizeMaps = () => {
+    //     try {
+    //         if (mapObject.length > 0)
+    //             for (const view of mapObject.map(mo => mo.newView)) {
     //                 const handle = reactiveUtils.watch(
     //                     () => [view.interacting, view.viewpoint],
     //                     ([interacting, viewpoint]) => {
-    //                         // Only print the new zoom value when the view is stationary
     //                         if (interacting) {
     //                             setActive(view);
     //                             sync(view);
@@ -627,22 +604,49 @@ const ScreenSplit = ({ onLogout }) => {
     //     } catch (error) {
     //         console.error(error);
     //     }
-    //     setMapObject(updateMapObject)
-    // }
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (syncUnSyncMapRef.current && !syncUnSyncMapRef.current.contains(event.target)) {
-                setSyncUnSyncDropdown(false);
+    // };
+    const sync = (source) => {
+        try {
+            if (!active || !active.viewpoint || active !== source) {
+                return;
             }
-        };
-        window.addEventListener('click', handleClickOutside);
-        return () => {
-            window.removeEventListener('click', handleClickOutside);
-        };
-    }, []);
+
+            mapObject.map(mo => mo.newView).forEach((view) => {
+                if (isSyncEnabled && view !== active) {
+                    view.viewpoint = active.viewpoint;
+                }
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    const synchronizeMaps = () => {
+        try {
+            if (mapObject.length > 0) {
+                for (const view of mapObject.map(mo => mo.newView)) {
+                    const handle = reactiveUtils.watch(
+                        () => [view.interacting, view.viewpoint],
+                        ([interacting, viewpoint]) => {
+                            if (interacting) {
+                                setActive(view);
+                                sync(view);
+                            }
+                        }
+                    );
+                }
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+    const handleSyncUnSyncMap = (e) => {
+        let sync = e.target.checked;
+        setIsSyncEnabled(sync);
+    }
     useEffect(() => {
         synchronizeMaps()
-    }, [active, mapObject])
+    }, [active, mapObject,isSyncEnabled])
     useEffect(() => {
         const loadMapForNewScreens = async () => {
             const clusterConfig = {
@@ -666,7 +670,7 @@ const ScreenSplit = ({ onLogout }) => {
                 labelingInfo: [{
                     deconflictionStrategy: "none",
                     labelExpressionInfo: {
-                        expression: "Text($feature.cluster_count, '#,###')"
+                        expression: `Text($feature.cluster_count, '#,###')`
                     },
                     symbol: {
                         type: "text",
@@ -707,6 +711,7 @@ const ScreenSplit = ({ onLogout }) => {
                         renderer: screen.renderer,
                         popupTemplate: screen.popupTemplate,
                     });
+                    esriPopUpUpdateSizes();
                     if (!screen.renderer) {
                         generateRenderer(newView, featurelayer, screen.field)
                     }
@@ -887,6 +892,15 @@ const ScreenSplit = ({ onLogout }) => {
                             closeOtherExpands(expandTableWidget)
                         }
                     })
+                    window.addEventListener('click', (event) => {
+                        const isOutsideClick = ![expandLegend, expandLayerList, bgExpandPrint, bgExpand, expandTableWidget].some(expand => {
+                            return expand.container.contains(event.target);
+                        });
+
+                        if (isOutsideClick) {
+                            closeOtherExpands(null);
+                        }
+                    });
                     newView.extent = featurelayer.fullExtent;
                     newView.ui.add(expandLayerList, "top-right")
                     newView.ui.add(expandLegend, "top-right");
@@ -898,8 +912,8 @@ const ScreenSplit = ({ onLogout }) => {
                     newView.ui.add(scaleBar, "bottom-left");
                     await newView.when();
                     let id = screen.id;
-                    let title= screen.title;
-                    let newMapObj = { id, title, newView, checked:true };
+                    let title = screen.title;
+                    let newMapObj = { id, title, newView, checked: true };
                     setMapObject(prevMapObj => [...prevMapObj, newMapObj]);
                 }
             });
@@ -982,6 +996,7 @@ const ScreenSplit = ({ onLogout }) => {
             kmpostQuery = " km_from >  " + KMFromSelected + " and km_to < " + KMToSelected;
         }
         for (const screen of mapObject) {
+            debugger
             let filterLayer = screen.newView.map.allLayers.items.filter(ly => operationalLayers.map(olyr => olyr.name).includes(ly.title))
             console.log(finalQuery);
             if (filterLayer.length > 0) {
@@ -1155,32 +1170,75 @@ const ScreenSplit = ({ onLogout }) => {
     const handleQueryBuilderClose = () => {
         setOpenQueryBuilder(false);
     };
-    const handleTrackInsighteScreenSelect = async (e) => {
-        let selectedTrackScreen = e.target.value;
+    const handleTrackScreenDropdown = () => {
+        setTrackInsighteScreenDropdown(!trackInsighteScreenDropdown)
+        setTrackInsighteLayerDropdown(false);
+        setTrackInsighteFieldDropdown(false);
+        setTrackInsighteSignDropdown(false);
+        setTrackInsighteValueDropdown(false);
+    }
+    const updateCommonField = (layerTitle) => {
+        const matchedField = screenRelatedFields.find(srf => srf.label === layerTitle);
+        if (matchedField) {
+            const updatedCommonFields = [
+                ...commonFields,
+                ...matchedField.fields
+            ];
+            return updatedCommonFields;
+        }
+        return commonFields;
+    };
+    const handleTrackInsighteScreenSelect = async (title) => {
+        let selectedTrackScreen = title;
         if (!selectedTrackScreen) return;
         setSelectedTrackInsightesScreen(selectedTrackScreen);
         let filteredScreen = screens.filter((screen) => screen.label === selectedTrackScreen);
         setLayerFromMap([]);
+        setSelectedLayerFromMap("");
+        setSelectedLayerField("");
+        setSignSelected("");
+        setSelectedLayerValue("");
         const layer = new FeatureLayer({
             url: filteredScreen[0].url
         });
         setSelectedLayer(layer)
+        console.log(`Title of layer : ${layer.title}`)
+        let newCommonFields = updateCommonField(layer.title);
+        setCommonField(newCommonFields);
         setLayerFromMap(prevLayer => [...prevLayer, layer.title]);
+        setTrackInsighteScreenDropdown(false)
     };
-    const handleLayerSelectFromMap = async (e) => {
-        let selLayer = e.target.value;
+    const handleLayerSelectDropdown = () => {
+        setTrackInsighteLayerDropdown(!trackInsighteLayerDropdown);
+        setTrackInsighteScreenDropdown(false)
+        setTrackInsighteFieldDropdown(false);
+        setTrackInsighteSignDropdown(false);
+        setTrackInsighteValueDropdown(false);
+    }
+    const handleLayerSelectFromMap = async (layer) => {
+        let selLayer = layer;
         setSelectedLayerFromMap(selLayer);
-        setFieldsFromLayer([]);
+        // setFieldsFromLayer([]);
         await Promise.all([selectedLayer.load()]);
-        if (selectedLayer) {
-            selectedLayer.fields.forEach((field) => {
-                setFieldsFromLayer(prevFieldName => [...prevFieldName, field.name]);
-            });
-        }
+        // if (selectedLayer) {
+        //     selectedLayer.fields.forEach((field) => {
+        //         setFieldsFromLayer(prevFieldName => [...prevFieldName, field.name]);
+        //     });
+        // }
+        setTrackInsighteLayerDropdown(false)
     };
-    const handleSelectFieldFromLayer = async (e) => {
-        let selectedField = e.target.value;
+    const handleFieldSelectDropdown = () => {
+        setTrackInsighteFieldDropdown(!trackInsighteFieldDropdown);
+        setTrackInsighteLayerDropdown(false);
+        setTrackInsighteScreenDropdown(false)
+        setTrackInsighteSignDropdown(false);
+        setTrackInsighteValueDropdown(false);
+    };
+    const handleSelectFieldFromLayer = async (field) => {
+        let selectedField = field;
         setSelectedLayerField(selectedField);
+        let filterField = commonField.filter(c => c.value === field);
+        setDisplayField(filterField[0].label);
         await Promise.all([selectedLayer.load()]);
         if (selectedLayer) {
             let query = selectedLayer.createQuery();
@@ -1188,8 +1246,15 @@ const ScreenSplit = ({ onLogout }) => {
             query.outFields = [selectedField];
             try {
                 setValueFromLayer([]);
+                setSelectedLayerValue("");
                 const result = await selectedLayer.queryFeatures(query);
                 let type = result.fields[1].type;
+                if (type === "string") {
+                    let filteredOperator = operator.filter(o => o.label === "equal to");
+                    setOperator(filteredOperator);
+                } else {
+                    setOperator(operators)
+                }
                 setFieldType(type);
                 const uniqueValues = new Set();
                 result.features.forEach((feature) => {
@@ -1220,9 +1285,34 @@ const ScreenSplit = ({ onLogout }) => {
                 console.error('Error querying features:', error);
             }
         }
+        setTrackInsighteFieldDropdown(false);
     };
+    const handleSignSelectDropdown = () => {
+        setTrackInsighteSignDropdown(!trackInsighteSignDropdown);
+        setTrackInsighteFieldDropdown(false);
+        setTrackInsighteLayerDropdown(false);
+        setTrackInsighteScreenDropdown(false)
+        setTrackInsighteValueDropdown(false);
+    };
+    const handleSelectSign = (sign) => {
+        setSignSelected(sign);
+        let selSign = operator.filter(o => o.value === sign);
+        selectedSign = selSign[0].label;
+        setSignLabel(selectedSign)
+        setTrackInsighteSignDropdown(false)
+    }
+    const handleValueSelectDropdown = () => {
+        setTrackInsighteValueDropdown(!trackInsighteValueDropdown);
+        setTrackInsighteSignDropdown(false);
+        setTrackInsighteFieldDropdown(false);
+        setTrackInsighteLayerDropdown(false);
+        setTrackInsighteScreenDropdown(false)
+    }
+    const handleSelectValue = (val) => {
+        setSelectedLayerValue(val);
+        setTrackInsighteValueDropdown(false)
+    }
     const handleQueryData = async () => {
-        debugger
         let filteredScreen = screens.filter((screen) => screen.label === selectedTrackInsightesScreen);
         if (!selectedLayer) {
             return toast.error("Please Select the Screen and Layer");
@@ -1310,7 +1400,8 @@ const ScreenSplit = ({ onLogout }) => {
         setSelectedLayerValue("");
         setSelectedLayer(null);
         setLayerFromMap([]);
-        setFieldsFromLayer([]);
+        // setFieldsFromLayer([]);
+        setDisplayField("");
         setValueFromLayer([]);
         mapObject.forEach((screen) => {
             screen.newView.graphics.removeAll();
@@ -1328,8 +1419,13 @@ const ScreenSplit = ({ onLogout }) => {
     const handleStyleBreakClose = () => {
         setOpenStyleBreak(false);
     };
-    const handleSelectedScreenForStyle = async (e) => {
-        let selectedStyleScreen = e.target.value;
+    const handleRendererScreenDropdown = () => {
+        setTrackScreenRendererDropdown(!trackScreenRendererDropdown);
+        setTrackLayerRendererDropdown(false);
+        setTrackFieldRendererDropdown(false);
+    }
+    const handleSelectedScreenForStyle = async (title) => {
+        let selectedStyleScreen = title;
         if (!selectedStyleScreen) return;
         console.log(`This is the selected screen : ${selectedStyleScreen}`)
         setSelectedScreenForStyle(selectedStyleScreen);
@@ -1337,29 +1433,44 @@ const ScreenSplit = ({ onLogout }) => {
         let id = (filteredScreen[0].id);
         setViewId(id);
         setLayerFromScreenStyle([]);
+        setSelectedLayerForStyle("");
+        setSelectedFieldForStyle("");
         const layer = new FeatureLayer({
             url: filteredScreen[0].url
         });
         await Promise.all([layer.load()]);
-        if (selectedStyleLayer && map.layers.includes(selectedStyleLayer)) {
+        if (selectedStyleLayer && map?.layers?.includes(selectedStyleLayer)) {
             map.remove(selectedStyleLayer);
         }
         setSelectedStyleLayer(layer)
-        setLayerFromScreenStyle(prevLayer => [...prevLayer, layer.title]);
+        setLayerFromScreenStyle(prevLayer => [...prevLayer, layer.title.replace("Cris.gis admin.", "")]);
+        setTrackScreenRendererDropdown(false);
     };
-    const handleSelectedLayerForStyle = async (e) => {
-        let selectedLayer = e.target.value;
+    const handleRendererLayerDropdown = () => {
+        setTrackLayerRendererDropdown(!trackLayerRendererDropdown);
+        setTrackFieldRendererDropdown(false);
+        setTrackScreenRendererDropdown(false);
+    }
+    const handleSelectedLayerForStyle = async (layer) => {
+        let selectedLayer = layer;
         setSelectedLayerForStyle(selectedLayer);
         setFieldsFromLayerStyle([]);
+        setSelectedFieldForStyle("");
         await Promise.all([selectedStyleLayer.load()]);
         if (selectedStyleLayer) {
             selectedStyleLayer.fields.forEach((field) => {
                 setFieldsFromLayerStyle(prevFieldName => [...prevFieldName, field.name]);
             });
         }
+        setTrackLayerRendererDropdown(false)
     };
-    const handleSelectFieldForStyle = async (e) => {
-        let selectedField = e.target.value;
+    const handleFieldRendererDropdown = () => {
+        setTrackFieldRendererDropdown(!trackFieldRendererDropdown);
+        setTrackScreenRendererDropdown(false);
+        setTrackLayerRendererDropdown(false);
+    }
+    const handleSelectFieldForStyle = async (field) => {
+        let selectedField = field;
         setSelectedFieldForStyle(selectedField);
         const filteredMapView = mapObject.filter(mo => mo.id === viewId);
         let view = filteredMapView[0].newView;
@@ -1388,7 +1499,7 @@ const ScreenSplit = ({ onLogout }) => {
                     console.error("there was an error: ", error);
                 });
         });
-
+        setTrackFieldRendererDropdown(false)
     };
     const handleRemoveStyleFromLayer = () => {
         setSelectedScreenForStyle("");
@@ -1396,9 +1507,8 @@ const ScreenSplit = ({ onLogout }) => {
         setSelectedFieldForStyle("");
         setLayerFromScreenStyle([]);
         setFieldsFromLayerStyle([]);
-        // setClassification("");
-        // setStyleBreak("");
-        if (selectedStyleLayer && map.layers.includes(selectedStyleLayer)) {
+        setSelectedStyleLayer(null);
+        if (selectedStyleLayer && map.layers && map.layers.includes(selectedStyleLayer)) {
             map.remove(selectedStyleLayer);
         }
     }
@@ -1423,6 +1533,53 @@ const ScreenSplit = ({ onLogout }) => {
                 console.error("there was an error: ", error);
             });
     };
+    //Hideing the Custome Filter
+    useEffect(() => {
+        let mapScreen = document.getElementsByClassName("splitScreen-Mainscreen");
+        let header = document.getElementsByClassName("splitScreen-Header-Two-ScreenDivision");
+        let headerOne = document.getElementsByClassName("splitScreen-Header-One");
+        const handleClickeOutSide = () => {
+            setOpenQueryBuilder(false);
+            setOpenStyleBreak(false);
+            setOpenZoneDivFilter(false);
+            setTrackInsighteValueDropdown(false);
+            setTrackInsighteSignDropdown(false);
+            setTrackInsighteFieldDropdown(false);
+            setTrackInsighteLayerDropdown(false);
+            setTrackInsighteScreenDropdown(false);
+            setOpenStyleBreak(false);
+            setOpenQueryBuilder(false);
+            setOpenZoneDivFilter(false);
+        };
+        Array.from(mapScreen).forEach(element => {
+            element.addEventListener("click", handleClickeOutSide);
+        });
+        Array.from(header).forEach(element => {
+            element.addEventListener("click", handleClickeOutSide)
+        })
+        Array.from(headerOne).forEach(element => {
+            element.addEventListener("click", handleClickeOutSide)
+        })
+        return () => {
+            Array.from(mapScreen).forEach(element => {
+                element.removeEventListener("click", handleClickeOutSide);
+            });
+            Array.from(header).forEach(element => {
+                element.removeEventListener("click", handleClickeOutSide);
+            });
+            Array.from(headerOne).forEach(element => {
+                element.removeEventListener("click", handleClickeOutSide);
+            });
+        }
+    }, []);
+    const esriPopUpUpdateSizes = () => {
+        let mapdivHeight = document.getElementsByClassName("mapView-div")[0].offsetHeight;
+        if (mapdivHeight < 435) {
+            $('.esri-popup__content').css('height', '75px');
+        } else {
+            $('.esri-popup__content').css('height', '289px');
+        }
+    };
     return (
         <div className="splitScreen-Container">
             <div className="splitScreen-Row">
@@ -1438,41 +1595,6 @@ const ScreenSplit = ({ onLogout }) => {
                         </div>
                         <div className="splitScreen-Header-Two">
                             <div className="splitScreen-Header-Two-ScreenDivision">
-                                {/* <div className="trackdropDown" ref={syncUnSyncMapRef}>
-                                    <button
-                                        className='btndropTrackBridge'
-                                        id="btnDropDown"
-                                        onClick={handleSyncUnSyncMap}
-                                    >
-                                        <span>SyncMap</span>
-                                        <svg width="30px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <g id="SVGRepo_bgCarrier" strokeWidth="0" />
-                                            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
-                                            <g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#015cb2" /> </g>
-                                        </svg>
-                                    </button>
-                                    {
-                                        syncUnSyncDropdown &&
-                                        <div className="trackDropDownContent">
-                                            {
-                                                mapObject && mapObject.map((mapObj) => (
-                                                    <label
-                                                        key={mapObj.id}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            value={mapObj.title}
-                                                            onChange={handleSyncUnSyncMapObject(mapObj)}
-                                                            checked={mapObj.checked}
-                                                            style={{ marginRight: "8px" }}
-                                                        />
-                                                        {mapObj.title}
-                                                    </label>
-                                                ))
-                                            }
-                                        </div>
-                                    }
-                                </div> */}
                                 <div className="trackdropDown" ref={trackInsightesDropdownRef}>
                                     <button
                                         className='btndropTrackBridge'
@@ -1545,6 +1667,12 @@ const ScreenSplit = ({ onLogout }) => {
                                 </div>
                             </div>
                             <div className="splitScreen-Header-Two-FilterDropdown">
+                            <Switch 
+                            title='Map Sync/UnSync'
+                            checked={isSyncEnabled}
+                            onChange={handleSyncUnSyncMap} 
+                            color="warning"
+                            />
                                 <img className='filterIcon' title='Query Builder' style={{ filter: "invert(100%)", color: "white" }} src='/cris/images/querys.png' alt='query.png' onClick={handleQueryBuilderDropdown} />
                                 {
                                     openQueryBuilder &&
@@ -1555,81 +1683,110 @@ const ScreenSplit = ({ onLogout }) => {
                                         <div className="queryBuilderDropdown-Content">
                                             <div className="queryBuilderDropdown-Content-Track">
                                                 <span>TrackInsightes :</span>
-                                                <select
-                                                    value={selectedTrackInsightesScreen}
-                                                    onChange={handleTrackInsighteScreenSelect}
-                                                >
-                                                    <option value="">Select-Screen</option>
-                                                    {
-                                                        screens && screens.map((screen) => (
-                                                            <option key={screen.value} value={screen.value}>{screen.label}</option>
-                                                        ))
-                                                    }
-                                                </select>
+                                                <div className="selectDiv">
+                                                    <button onClick={handleTrackScreenDropdown} className='selectedDivButton'>{selectedTrackInsightesScreen !== "" ? selectedTrackInsightesScreen : "selecte Screen"}</button>
+                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                    </svg>
+                                                </div>
+                                                {
+                                                    trackInsighteScreenDropdown &&
+                                                    <div className="selectDivOption">
+                                                        {
+                                                            screens && screens.map((screen) => (
+                                                                <span key={screen.value} value={screen.value} onClick={() => handleTrackInsighteScreenSelect(screen.title)}>{screen.label}</span>
+                                                            ))
+                                                        }
+
+                                                    </div>
+                                                }
                                             </div>
                                             <div className="queryBuilderDropdown-Content-Track">
                                                 <span>Select Layer :</span>
-                                                <select
-                                                    value={selectedLayerFromMap}
-                                                    onChange={handleLayerSelectFromMap}
-                                                >
-                                                    <option>Select Layer</option>
-                                                    {
-                                                        layerFromMap && layerFromMap.map((layer, index) => (
-                                                            <option key={index} value={layer}>{layer}</option>
-                                                        ))
-                                                    }
-                                                </select>
+                                                <div className="selectDiv">
+                                                    <button onClick={handleLayerSelectDropdown} className='selectedDivButton'>{selectedLayerFromMap !== "" ? selectedLayerFromMap : "selecte Layer"}</button>
+                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                    </svg>
+                                                </div>
+                                                {
+                                                    trackInsighteLayerDropdown &&
+                                                    <div className="selectDivOption top1">
+                                                        {
+                                                            layerFromMap && layerFromMap.map((layer, index) => (
+                                                                <span key={index} onClick={() => handleLayerSelectFromMap(layer)}>{layer}</span>
+                                                            ))
+                                                        }
+
+                                                    </div>
+                                                }
                                             </div>
                                             <div className="queryBuilderDropdown-Content-Track">
                                                 <span>Select Field :</span>
-                                                <select
-                                                    value={selectedLayerField}
-                                                    onChange={handleSelectFieldFromLayer}
-                                                >
-                                                    <option>select Field</option>
-                                                    {
-                                                        fieldsFromLayer && fieldsFromLayer.map((field, index) => (
-                                                            <option key={index} value={field} >{field}</option>
-                                                        ))
-                                                    }
-                                                </select>
+                                                <div className="selectDiv">
+                                                    <button onClick={handleFieldSelectDropdown} className='selectedDivButton'>{selectedLayerField !== "" ? displayField : "selecte Field"}</button>
+                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                    </svg>
+                                                </div>
+                                                {
+                                                    trackInsighteFieldDropdown &&
+                                                    <div className="selectDivOption top2">
+                                                        {
+                                                            commonField && commonField.map((field, index) => (
+                                                                <span key={index} onClick={() => handleSelectFieldFromLayer(field.value)}>{field.label}</span>
+                                                            ))
+                                                        }
+                                                    </div>
+                                                }
                                             </div>
                                             <div className="queryBuilderDropdown-Content-Track">
                                                 <span>Select Operator :</span>
-                                                <select
-                                                    value={signSelected}
-                                                    onChange={(e) => setSignSelected(e.target.value)}
-                                                >
-                                                    <option>Select Operator</option>
-                                                    <option value={`>`}>is greater than</option>
-                                                    <option value={`<`}>is less than</option>
-                                                    <option value={`=`}>is equal to</option>
-                                                </select>
+                                                <div className="selectDiv">
+                                                    <button onClick={handleSignSelectDropdown} className='selectedDivButton'>{signSelected === "" ? "select Operator" : signLabel}</button>
+                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                    </svg>
+                                                </div>
+                                                {
+                                                    trackInsighteSignDropdown &&
+                                                    <div className="selectDivOption top3">
+                                                        {
+                                                            operator && operator.map((sign) => (
+                                                                <span key={sign.id} onClick={() => handleSelectSign(sign.value)}>{sign.label}</span>
+                                                            ))
+                                                        }
+                                                    </div>
+                                                }
                                             </div>
                                             <div className="queryBuilderDropdown-Content-Track">
                                                 <span>Select Value :</span>
-                                                <select
-                                                    value={selectedLayerValue}
-                                                    onChange={(e) => setSelectedLayerValue(e.target.value)}
-                                                >
-                                                    <option>Select Value</option>
-                                                    {
-                                                        valueFromLayer && valueFromLayer.map((val, index) => (
-                                                            <option key={index} value={val}>{
-                                                                fieldType === "date" ? (
-                                                                    <>
-                                                                        {formatDate(parseInt(val))}
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        {val}
-                                                                    </>
-                                                                )
-                                                            }</option>
-                                                        ))
-                                                    }
-                                                </select>
+                                                <div className="selectDiv">
+                                                    <button onClick={handleValueSelectDropdown} className='selectedDivButton'>{selectedLayerValue === "" ? "select Value" : `${fieldType === "date" ? `${formatDate(parseInt(selectedLayerValue))}` : selectedLayerValue}`}</button>
+                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                    </svg>
+                                                </div>
+                                                {
+                                                    trackInsighteValueDropdown &&
+                                                    <div className="selectDivOption top4">
+                                                        {
+                                                            valueFromLayer && valueFromLayer.map((val, index) => (
+                                                                <span key={index} onClick={() => handleSelectValue(val)}>{
+                                                                    fieldType === "date" ? (
+                                                                        <>
+                                                                            {formatDate(parseInt(val))}
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            {val}
+                                                                        </>
+                                                                    )
+                                                                }</span>
+                                                            ))
+                                                        }
+                                                    </div>
+                                                }
                                             </div>
                                             <div className="queryBuilderDropdown-Content-button">
                                                 <button className='btnQuery' onClick={handleQueryData}>Query Data</button>
@@ -1912,37 +2069,50 @@ const ScreenSplit = ({ onLogout }) => {
                                         <div className="queryBuilderDropdown-Content">
                                             <div className="queryBuilderDropdown-Content-Track">
                                                 <span>TrackScreen :</span>
-                                                <select
-                                                    value={selectedScreenForStyle}
-                                                    onChange={handleSelectedScreenForStyle}
-                                                >
-                                                    <option value="">Select-Screen</option>
-                                                    {
-                                                        screens && screens.map((screen) => (
-                                                            <option key={screen.value} value={screen.value}>{screen.label}</option>
-                                                        ))
-                                                    }
-                                                </select>
+                                                <div className="selectDiv">
+                                                    <button onClick={handleRendererScreenDropdown} className='selectedDivButton'>{selectedScreenForStyle !== "" ? selectedScreenForStyle : "selecte Screen"}</button>
+                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                    </svg>
+                                                </div>
+                                                {
+                                                    trackScreenRendererDropdown &&
+                                                    <div className="selectDivOption">
+                                                        {
+                                                            screens && screens.map((screen) => (
+                                                                <span key={screen.value} onClick={() => handleSelectedScreenForStyle(screen.title)}>{screen.label}</span>
+                                                            ))
+                                                        }
+
+                                                    </div>
+                                                }
                                             </div>
                                             <div className="queryBuilderDropdown-Content-Track">
                                                 <span>Select Layer :</span>
-                                                <select
-                                                    value={selectedLayerForStyle}
-                                                    onChange={handleSelectedLayerForStyle}
-                                                >
-                                                    <option>Select Layer</option>
-                                                    {
-                                                        layerFromScreenStyle && layerFromScreenStyle.map((layer, index) => (
-                                                            <option key={index} value={layer}>{layer}</option>
-                                                        ))
-                                                    }
-                                                </select>
+                                                <div className="selectDiv">
+                                                    <button onClick={handleRendererLayerDropdown} className='selectedDivButton'>{selectedLayerForStyle !== "" ? selectedLayerForStyle : "selecte Layer"}</button>
+                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                    </svg>
+                                                </div>
+                                                {
+                                                    trackLayerRendererDropdown &&
+                                                    <div className="selectDivOption top1">
+                                                        {
+                                                            layerFromScreenStyle && layerFromScreenStyle.map((layer, index) => (
+                                                                <span key={index} onClick={() => handleSelectedLayerForStyle(layer)}>{layer}</span>
+                                                            ))
+                                                        }
+
+                                                    </div>
+                                                }
                                             </div>
                                             <div className="queryBuilderDropdown-Content-Track">
                                                 <span>Select Field :</span>
-                                                <select
+                                                {/* <select
                                                     value={selectedFieldForStyle}
                                                     onChange={handleSelectFieldForStyle}
+                                                    className="custome-select"
                                                 >
                                                     <option>select Field</option>
                                                     {
@@ -1950,25 +2120,24 @@ const ScreenSplit = ({ onLogout }) => {
                                                             <option key={index} value={field}>{field}</option>
                                                         ))
                                                     }
-                                                </select>
+                                                </select> */}
+                                                <div className="selectDiv">
+                                                    <button onClick={handleFieldRendererDropdown} className='selectedDivButton'>{selectedFieldForStyle !== "" ? selectedFieldForStyle : "selecte Field"}</button>
+                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                    </svg>
+                                                </div>
+                                                {
+                                                    trackFieldRendererDropdown &&
+                                                    <div className="selectDivOption top2">
+                                                        {
+                                                            fieldsFromLayerStyle && fieldsFromLayerStyle.map((field, index) => (
+                                                                <span key={index} onClick={() => handleSelectFieldForStyle(field)}>{field}</span>
+                                                            ))
+                                                        }
+                                                    </div>
+                                                }
                                             </div>
-                                            {/* <div className="queryBuilderDropdown-Content-Track">
-                                                <span>Classification :</span>
-                                                <select
-                                                value={classification}
-                                                onChange={handleClassificationChange}
-                                                >
-                                                    <option>select Classification</option>
-                                                    <option value="equal interval">Equal Interval</option>
-                                                    <option value="quantile">Quantile</option>
-                                                    <option value="natural breaks">Natural Breaks</option>
-                                                    <option value="manual">Manual</option>
-                                                </select>
-                                            </div>
-                                            <div className="queryBuilderDropdown-Content-Track">
-                                                <span>Breaks :</span>
-                                                <input type="number" max={10} min={0} name="break" className='breakInput' value={styleBreak} onChange={handleStyleBreakInputChange} />
-                                            </div> */}
                                             <div className="queryBuilderDropdown-Content-button">
                                                 <button className='btnQuery' onClick={handleRemoveStyleFromLayer}>Remove</button>
                                             </div>
