@@ -5,6 +5,8 @@ import { DateRangePicker } from 'react-dates';
 import { Remove_User } from "../../actions";
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
+import { alpha, styled } from '@mui/material/styles';
+import { blue} from '@mui/material/colors';
 import Switch from '@mui/material/Switch';
 import $ from 'jquery';
 import 'react-toastify/dist/ReactToastify.css';
@@ -15,6 +17,17 @@ const [FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, react
 ] = await loadModules(["esri/layers/FeatureLayer", "esri/views/MapView", "esri/Map", "esri/widgets/Zoom", "esri/widgets/ScaleBar",
     "esri/widgets/Expand", "esri/widgets/BasemapGallery", "esri/core/reactiveUtils", "esri/widgets/Legend", "esri/widgets/LayerList", "esri/smartMapping/renderers/type", "esri/Graphic", "esri/identity/IdentityManager", "esri/geometry", "esri/geometry/SpatialReference", "esri/widgets/FeatureTable", "esri/widgets/Fullscreen", "esri/widgets/Print", "esri/renderers/SimpleRenderer",
     "esri/symbols/SimpleFillSymbol"], { css: true });
+    const BlueSwitch = styled(Switch)(({ theme }) => ({
+        '& .MuiSwitch-switchBase.Mui-checked': {
+          color: blue[200],
+          '&:hover': {
+            backgroundColor: alpha(blue[200], theme.palette.action.hoverOpacity),
+          },
+        },
+        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+          backgroundColor: blue[200],
+        },
+      }));
 const ScreenSplit = ({ onLogout }) => {
     const dispatch = useDispatch();
     const handleLogout = async () => {
@@ -84,10 +97,11 @@ const ScreenSplit = ({ onLogout }) => {
     const [fieldsFromLayerStyle, setFieldsFromLayerStyle] = useState([]);
     const [viewId, setViewId] = useState(null);
     const [map, setMap] = useState(null);
-    const [isSyncEnabled, setIsSyncEnabled] = useState(false);
+    const [isSyncEnabled, setIsSyncEnabled] = useState(true);
+    const watchersRef = useRef([]);
+    const [active, setActive] = useState(null);
     const [KMFromSelected, setKMFromSelected] = useState("");
     const [KMToSelected, setKMToSelected] = useState("");
-    const [active, setActive] = useState(null);
     const [fieldType, setFieldType] = useState("");
     const [trackInsightes, setTrackInsightes] = useState(TrackInsightes);
     const [bridgeInsightes, setBridgeInsightes] = useState(BridgeInsightes);
@@ -570,41 +584,6 @@ const ScreenSplit = ({ onLogout }) => {
         return () => {
         };
     }, [initialMap]);
-    // Function to synchronize map viewpoints
-    // const sync = (source) => {
-    //     try {
-    //         if (!active || !active.viewpoint || active !== source) {
-    //             return;
-    //         }
-
-    //         mapObject.map(mo => mo.newView).forEach((view) => {
-    //             if (view !== active) {
-    //                 view.viewpoint = active.viewpoint;
-    //             }
-    //         });
-    //     } catch (error) {
-    //         console.log(error)
-    //     }
-    // };
-    // const synchronizeMaps = () => {
-    //     try {
-    //         if (mapObject.length > 0)
-    //             for (const view of mapObject.map(mo => mo.newView)) {
-    //                 const handle = reactiveUtils.watch(
-    //                     () => [view.interacting, view.viewpoint],
-    //                     ([interacting, viewpoint]) => {
-    //                         if (interacting) {
-    //                             setActive(view);
-    //                             sync(view);
-    //                         }
-
-    //                     }
-    //                 );
-    //             }
-    //     } catch (error) {
-    //         console.error(error);
-    //     }
-    // };
     const sync = (source) => {
         try {
             if (!active || !active.viewpoint || active !== source) {
@@ -634,18 +613,32 @@ const ScreenSplit = ({ onLogout }) => {
                             }
                         }
                     );
+                    watchersRef.current.push(handle);
                 }
             }
         } catch (error) {
             console.error(error);
         }
     };
+    const teardownWatchers = () => {
+        watchersRef.current.forEach(handle => handle.remove());
+        watchersRef.current = []; 
+    };
     const handleSyncUnSyncMap = (e) => {
         let sync = e.target.checked;
         setIsSyncEnabled(sync);
     }
     useEffect(() => {
-        synchronizeMaps()
+        if (isSyncEnabled) {
+            synchronizeMaps();
+        } else {
+            teardownWatchers();
+        }
+
+        // Clean up on component unmount
+        return () => {
+            teardownWatchers();
+        };
     }, [active, mapObject,isSyncEnabled])
     useEffect(() => {
         const loadMapForNewScreens = async () => {
@@ -1667,11 +1660,12 @@ const ScreenSplit = ({ onLogout }) => {
                                 </div>
                             </div>
                             <div className="splitScreen-Header-Two-FilterDropdown">
-                            <Switch 
+                            <BlueSwitch 
                             title='Map Sync/UnSync'
                             checked={isSyncEnabled}
                             onChange={handleSyncUnSyncMap} 
                             color="warning"
+                            className='mapSyncSwitcher'
                             />
                                 <img className='filterIcon' title='Query Builder' style={{ filter: "invert(100%)", color: "white" }} src='/cris/images/querys.png' alt='query.png' onClick={handleQueryBuilderDropdown} />
                                 {
