@@ -5,6 +5,8 @@ import { DateRangePicker } from 'react-dates';
 import { Remove_User } from "../../actions";
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
+import LogoutModal from '../Custome/LogoutModal';
+import { Modal } from '@mui/material';
 import BlueSwitch from '../Custome/BlueSwitch';
 import $ from 'jquery';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,17 +14,12 @@ import 'react-dates/initialize';
 import moment from 'moment';
 import 'react-dates/lib/css/_datepicker.css';
 import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers, operators, commonFields, screenRelatedFields } from '../../Templates/Template';
-const [Popup,FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print,
-] = await loadModules(["esri/widgets/Popup","esri/layers/FeatureLayer", "esri/views/MapView", "esri/Map", "esri/widgets/Zoom", "esri/widgets/ScaleBar",
+const [Popup, FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print,
+] = await loadModules(["esri/widgets/Popup", "esri/layers/FeatureLayer", "esri/views/MapView", "esri/Map", "esri/widgets/Zoom", "esri/widgets/ScaleBar",
     "esri/widgets/Expand", "esri/widgets/BasemapGallery", "esri/core/reactiveUtils", "esri/widgets/Legend", "esri/widgets/LayerList", "esri/smartMapping/renderers/type", "esri/Graphic", "esri/identity/IdentityManager", "esri/geometry", "esri/geometry/SpatialReference", "esri/widgets/FeatureTable", "esri/widgets/Fullscreen", "esri/widgets/Print", "esri/renderers/SimpleRenderer",
     "esri/symbols/SimpleFillSymbol"], { css: true });
 const SplitScreen = ({ onLogout }) => {
     const dispatch = useDispatch();
-    const handleLogout = async () => {
-        dispatch(Remove_User());
-        IdentityManager.destroyCredentials();
-        window.location.reload();
-    };
     let screenId;
     let selectionIdCount = 0;
     let candidate;
@@ -33,6 +30,7 @@ const SplitScreen = ({ onLogout }) => {
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [focusedInput, setFocusedInput] = useState(null);
+    const [isOpenLogModal, setIsOpenLogModal] = useState(false)
     const trackInsightesDropdownRef = useRef(null);
     const bridgeInsightesDropdownRef = useRef(null);
     const zoneDropdownRef = useRef(null);
@@ -80,6 +78,7 @@ const SplitScreen = ({ onLogout }) => {
     const [selectedScreenForStyle, setSelectedScreenForStyle] = useState("");
     const [selectedLayerForStyle, setSelectedLayerForStyle] = useState("");
     const [selectedFieldForStyle, setSelectedFieldForStyle] = useState("");
+    const [fieldLabelForStyle, setFieldLabelForStyle] = useState("")
     const [selectedStyleLayer, setSelectedStyleLayer] = useState(null);
     const [layerFromScreenStyle, setLayerFromScreenStyle] = useState([]);
     const [fieldsFromLayerStyle, setFieldsFromLayerStyle] = useState([]);
@@ -99,11 +98,25 @@ const SplitScreen = ({ onLogout }) => {
         { id: 0, label: "", value: "", url: "" }
     ]);
     const prevScreensRef = useRef(screens);
+    const openLogoutMOdal = () => {
+        setIsOpenLogModal(true);
+    }
+    const handleLogout =  () => {
+        dispatch(Remove_User());
+        IdentityManager.destroyCredentials();
+        window.location.reload();
+    };
     const handleDatesChange = ({ startDate, endDate }) => {
         setStartDate(startDate);
         setEndDate(endDate);
     };
-
+    const formatTitle = (field) => {
+        return field
+            .toLowerCase()
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    };
     const calculateGrid = (count) => {
         let numRows, numCols;
         if (count <= 9) {
@@ -677,16 +690,16 @@ const SplitScreen = ({ onLogout }) => {
                         popup: new Popup({
                             dockEnabled: true,
                             dockOptions: {
-                              // Disables the dock button from the popup
-                              buttonEnabled: false,
-                              // Ignore the default sizes that trigger responsive docking
-                              breakpoint: false,
-                              position:'top-right'
+                                // Disables the dock button from the popup
+                                buttonEnabled: false,
+                                // Ignore the default sizes that trigger responsive docking
+                                breakpoint: false,
+                                position: 'top-right'
                             },
                             visibleElements: {
-                              closeButton: false
+                                closeButton: false
                             }
-                          }),
+                        }),
                         container: `viewDiv-${screen.id}`,
                         ui: {
                             components: ["attribution"]
@@ -933,8 +946,6 @@ const SplitScreen = ({ onLogout }) => {
 
         return result;
     };
-    const months = moment.months();
-    const years = Array.from({ length: 100 }, (_, i) => moment().year() - i);
     const formatDate = (date) => {
         var d = new Date(date),
             month = '' + (d.getMonth() + 1),
@@ -1223,6 +1234,7 @@ const SplitScreen = ({ onLogout }) => {
         setTrackInsighteValueDropdown(false);
     };
     const handleSelectFieldFromLayer = async (field) => {
+        debugger
         let selectedField = field;
         setSelectedLayerField(selectedField);
         let filterField = commonField.filter(c => c.value === field);
@@ -1301,6 +1313,7 @@ const SplitScreen = ({ onLogout }) => {
         setTrackInsighteValueDropdown(false)
     }
     const handleQueryData = async () => {
+        debugger
         let filteredScreen = screens.filter((screen) => screen.label === selectedTrackInsightesScreen);
         if (!selectedLayer) {
             return toast.error("Please Select the Screen and Layer");
@@ -1413,6 +1426,7 @@ const SplitScreen = ({ onLogout }) => {
         setTrackFieldRendererDropdown(false);
     }
     const handleSelectedScreenForStyle = async (title) => {
+        debugger
         let selectedStyleScreen = title;
         if (!selectedStyleScreen) return;
         console.log(`This is the selected screen : ${selectedStyleScreen}`)
@@ -1426,12 +1440,15 @@ const SplitScreen = ({ onLogout }) => {
         const layer = new FeatureLayer({
             url: filteredScreen[0].url
         });
+        let layerTitle = layer.title;
         await Promise.all([layer.load()]);
         if (selectedStyleLayer && map?.layers?.includes(selectedStyleLayer)) {
             map.remove(selectedStyleLayer);
         }
         setSelectedStyleLayer(layer)
-        setLayerFromScreenStyle(prevLayer => [...prevLayer, layer.title.replace("Cris.gis admin.", "")]);
+        let newCommonFields = updateCommonField(layerTitle);
+        setFieldsFromLayerStyle(newCommonFields);
+        setLayerFromScreenStyle([layerTitle]);
         setTrackScreenRendererDropdown(false);
     };
     const handleRendererLayerDropdown = () => {
@@ -1442,14 +1459,7 @@ const SplitScreen = ({ onLogout }) => {
     const handleSelectedLayerForStyle = async (layer) => {
         let selectedLayer = layer;
         setSelectedLayerForStyle(selectedLayer);
-        setFieldsFromLayerStyle([]);
         setSelectedFieldForStyle("");
-        await Promise.all([selectedStyleLayer.load()]);
-        if (selectedStyleLayer) {
-            selectedStyleLayer.fields.forEach((field) => {
-                setFieldsFromLayerStyle(prevFieldName => [...prevFieldName, field.name]);
-            });
-        }
         setTrackLayerRendererDropdown(false)
     };
     const handleFieldRendererDropdown = () => {
@@ -1458,8 +1468,11 @@ const SplitScreen = ({ onLogout }) => {
         setTrackLayerRendererDropdown(false);
     }
     const handleSelectFieldForStyle = async (field) => {
+        debugger
         let selectedField = field;
         setSelectedFieldForStyle(selectedField);
+        let filterField = fieldsFromLayerStyle.filter(c => c.value === field);
+        setFieldLabelForStyle(filterField[0].label);
         const filteredMapView = mapObject.filter(mo => mo.id === viewId);
         let view = filteredMapView[0].newView;
         let map = view.map;
@@ -1472,7 +1485,7 @@ const SplitScreen = ({ onLogout }) => {
                 view: view,
                 field: selectedField, // Field Name 
                 legendOptions: {
-                    title: `${selectedField}`
+                    title: `${formatTitle(selectedField)}`
                 }
             };
             typeRendererCreator
@@ -1502,14 +1515,13 @@ const SplitScreen = ({ onLogout }) => {
     }
     //#endregion
     const generateRenderer = async (view, layer, field) => {
-
         await Promise.all([layer.load()]);
         const typeParams = {
             layer: layer, //Layer
             view: view,
             field: field, // Field Name 
             legendOptions: {
-                title: `${field}`
+                title: `${formatTitle(field)}`
             }
         };
         typeRendererCreator
@@ -1569,634 +1581,639 @@ const SplitScreen = ({ onLogout }) => {
         }
     };
     return (
-        <div className="splitScreen-Container">
-            <div className="splitScreen-Row">
-                <div className="splitScreen-RowOne">
-                    <div className="splitScreen-Header">
-                        <div className="splitScreen-Header-One">
-                            <div className="splitScreen-Header-One-TagImage">
-                                <img className="imgTagName" src="/cris/images/crisTag.png" alt="CrisTag.png" />
-                            </div>
-                            <div className="splitScreen-Header-One-TagName">
-                                <h3>Track Analysis Dashboard</h3>
-                            </div>
-                        </div>
-                        <div className="splitScreen-Header-Two">
-                            <div className="splitScreen-Header-Two-ScreenDivision">
-                                <div className="trackdropDown" ref={trackInsightesDropdownRef}>
-                                    <button
-                                        className='btndropTrackBridge'
-                                        id="btnDropDown"
-                                        onClick={handleTrackInsightesDropdown}
-                                    >
-                                        <span>Track Insightes</span>
-                                        <svg width="30px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <g id="SVGRepo_bgCarrier" strokeWidth="0" />
-                                            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
-                                            <g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#015cb2" /> </g>
-                                        </svg>
-                                    </button>
-                                    {
-                                        trackDropdown &&
-                                        <div className="trackDropDownContent">
-                                            {
-                                                trackInsightes && trackInsightes.map((item, index) => (
-                                                    <label
-                                                        key={index}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            value={item.value}
-                                                            onChange={handleTrackInsightes(item)}
-                                                            checked={screens.length <= 9 ? item.checked : false}
-                                                            style={{ marginRight: "8px" }}
-                                                        />
-                                                        {item.label}
-                                                    </label>
-                                                ))
-                                            }
-                                        </div>
-                                    }
+        <>
+            {
+                isOpenLogModal &&
+                <Modal
+                    open={isOpenLogModal}
+                    onClose={() => { setIsOpenLogModal(false) }}
+                    sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                    }}
+                >
+                    <LogoutModal handleLogout={handleLogout} setIsOpenLogModal={setIsOpenLogModal}/>
+                </Modal>
+            }
+            <div className="splitScreen-Container">
+                <div className="splitScreen-Row">
+                    <div className="splitScreen-RowOne">
+                        <div className="splitScreen-Header">
+                            <div className="splitScreen-Header-One">
+                                <div className="splitScreen-Header-One-TagImage">
+                                    <img className="imgTagName" src="/cris/images/crisTag.png" alt="CrisTag.png" />
                                 </div>
-                                <div className="bridgeDropDown" ref={bridgeInsightesDropdownRef}>
-                                    <button
-                                        className='btndropTrackBridge'
-                                        id="btnDropDown"
-                                        onClick={handleBridgeInsightesDropdown}
-                                    >
-                                        <span>Bridge Insightes</span>
-                                        <svg width="30px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <g id="SVGRepo_bgCarrier" strokeWidth="0" />
-                                            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
-                                            <g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#015cb2" /> </g>
-                                        </svg>
-                                    </button>
-                                    {
-                                        bridgeDropdown &&
-                                        <div className="bridgeDropDownContent">
-                                            {
-                                                bridgeInsightes && bridgeInsightes.map((bridgeItem, index) => (
-                                                    <label
-                                                        key={index}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            value={bridgeItem.value}
-                                                            onChange={handleBridgeInsightes(bridgeItem)}
-                                                            checked={screens.length <= 9 ? bridgeItem.checked : false}
-                                                            style={{ marginRight: "8px" }}
-                                                        />
-                                                        {bridgeItem.label}
-                                                    </label>
-                                                ))
-                                            }
-                                        </div>
-                                    }
+                                <div className="splitScreen-Header-One-TagName">
+                                    <h3>Track Analysis Dashboard</h3>
                                 </div>
                             </div>
-                            <div className="splitScreen-Header-Two-FilterDropdown">
-                                <BlueSwitch
-                                    title='Map Sync/UnSync'
-                                    checked={isSyncEnabled}
-                                    onChange={handleSyncUnSyncMap}
-                                    color="warning"
-                                    className='mapSyncSwitcher'
-                                />
-                                <img className='filterIcon' title='Query Builder' style={{ filter: "invert(100%)", color: "white" }} src='/cris/images/querys.png' alt='query.png' onClick={handleQueryBuilderDropdown} />
-                                {
-                                    openQueryBuilder &&
-                                    <div className="queryBuilderDropdown">
-                                        <div className="queryBuilderDropdown-Header">
-                                            <h3>Query Builder</h3><span onClick={handleQueryBuilderClose}>X</span>
+                            <div className="splitScreen-Header-Two">
+                                <div className="splitScreen-Header-Two-ScreenDivision">
+                                    <div className="trackdropDown" ref={trackInsightesDropdownRef}>
+                                        <button
+                                            className='btndropTrackBridge'
+                                            id="btnDropDown"
+                                            onClick={handleTrackInsightesDropdown}
+                                        >
+                                            <span>Track Insightes</span>
+                                            <svg width="30px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <g id="SVGRepo_bgCarrier" strokeWidth="0" />
+                                                <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
+                                                <g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#015cb2" /> </g>
+                                            </svg>
+                                        </button>
+                                        {
+                                            trackDropdown &&
+                                            <div className="trackDropDownContent">
+                                                {
+                                                    trackInsightes && trackInsightes.map((item, index) => (
+                                                        <label
+                                                            key={index}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                value={item.value}
+                                                                onChange={handleTrackInsightes(item)}
+                                                                checked={screens.length <= 9 ? item.checked : false}
+                                                                style={{ marginRight: "8px" }}
+                                                            />
+                                                            {item.label}
+                                                        </label>
+                                                    ))
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                    <div className="bridgeDropDown" ref={bridgeInsightesDropdownRef}>
+                                        <button
+                                            className='btndropTrackBridge'
+                                            id="btnDropDown"
+                                            onClick={handleBridgeInsightesDropdown}
+                                        >
+                                            <span>Bridge Insightes</span>
+                                            <svg width="30px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <g id="SVGRepo_bgCarrier" strokeWidth="0" />
+                                                <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" />
+                                                <g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#015cb2" /> </g>
+                                            </svg>
+                                        </button>
+                                        {
+                                            bridgeDropdown &&
+                                            <div className="bridgeDropDownContent">
+                                                {
+                                                    bridgeInsightes && bridgeInsightes.map((bridgeItem, index) => (
+                                                        <label
+                                                            key={index}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                value={bridgeItem.value}
+                                                                onChange={handleBridgeInsightes(bridgeItem)}
+                                                                checked={screens.length <= 9 ? bridgeItem.checked : false}
+                                                                style={{ marginRight: "8px" }}
+                                                            />
+                                                            {bridgeItem.label}
+                                                        </label>
+                                                    ))
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                <div className="splitScreen-Header-Two-FilterDropdown">
+                                    <BlueSwitch
+                                        title='Map Sync/UnSync'
+                                        checked={isSyncEnabled}
+                                        onChange={handleSyncUnSyncMap}
+                                        color="warning"
+                                        className='mapSyncSwitcher'
+                                    />
+                                    <img className='filterIcon' title='Query Builder' style={{ filter: "invert(100%)", color: "white" }} src='/cris/images/querys.png' alt='query.png' onClick={handleQueryBuilderDropdown} />
+                                    {
+                                        openQueryBuilder &&
+                                        <div className="queryBuilderDropdown">
+                                            <div className="queryBuilderDropdown-Header">
+                                                <h3>Query Builder</h3><span onClick={handleQueryBuilderClose}>X</span>
+                                            </div>
+                                            <div className="queryBuilderDropdown-Content">
+                                                <div className="queryBuilderDropdown-Content-Track">
+                                                    <span>TrackInsightes :</span>
+                                                    <div className="selectDiv">
+                                                        <button onClick={handleTrackScreenDropdown} className='selectedDivButton'>{selectedTrackInsightesScreen !== "" ? selectedTrackInsightesScreen : "selecte Screen"}</button>
+                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                        </svg>
+                                                    </div>
+                                                    {
+                                                        trackInsighteScreenDropdown &&
+                                                        <div className="selectDivOption">
+                                                            {
+                                                                screens && screens.map((screen) => (
+                                                                    <span key={screen.value} value={screen.value} onClick={() => handleTrackInsighteScreenSelect(screen.title)}>{screen.label}</span>
+                                                                ))
+                                                            }
+
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div className="queryBuilderDropdown-Content-Track">
+                                                    <span>Select Layer :</span>
+                                                    <div className="selectDiv">
+                                                        <button onClick={handleLayerSelectDropdown} className='selectedDivButton'>{selectedLayerFromMap !== "" ? selectedLayerFromMap : "selecte Layer"}</button>
+                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                        </svg>
+                                                    </div>
+                                                    {
+                                                        trackInsighteLayerDropdown &&
+                                                        <div className="selectDivOption top1">
+                                                            {
+                                                                layerFromMap && layerFromMap.map((layer, index) => (
+                                                                    <span key={index} onClick={() => handleLayerSelectFromMap(layer)}>{layer}</span>
+                                                                ))
+                                                            }
+
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div className="queryBuilderDropdown-Content-Track">
+                                                    <span>Select Field :</span>
+                                                    <div className="selectDiv">
+                                                        <button onClick={handleFieldSelectDropdown} className='selectedDivButton'>{selectedLayerField !== "" ? displayField : "selecte Field"}</button>
+                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                        </svg>
+                                                    </div>
+                                                    {
+                                                        trackInsighteFieldDropdown &&
+                                                        <div className="selectDivOption top2">
+                                                            {
+                                                                commonField && commonField.map((field, index) => (
+                                                                    <span key={index} onClick={() => handleSelectFieldFromLayer(field.value)}>{field.label}</span>
+                                                                ))
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div className="queryBuilderDropdown-Content-Track">
+                                                    <span>Select Operator :</span>
+                                                    <div className="selectDiv">
+                                                        <button onClick={handleSignSelectDropdown} className='selectedDivButton'>{signSelected === "" ? "select Operator" : signLabel}</button>
+                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                        </svg>
+                                                    </div>
+                                                    {
+                                                        trackInsighteSignDropdown &&
+                                                        <div className="selectDivOption top3">
+                                                            {
+                                                                operator && operator.map((sign) => (
+                                                                    <span key={sign.id} onClick={() => handleSelectSign(sign.value)}>{sign.label}</span>
+                                                                ))
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div className="queryBuilderDropdown-Content-Track">
+                                                    <span>Select Value :</span>
+                                                    <div className="selectDiv">
+                                                        <button onClick={handleValueSelectDropdown} className='selectedDivButton'>{selectedLayerValue === "" ? "select Value" : `${fieldType === "date" ? `${formatDate(parseInt(selectedLayerValue))}` : selectedLayerValue}`}</button>
+                                                        {/* <button onClick={handleValueSelectDropdown} className='selectedDivButton'>{selectedLayerValue === "" ? "select Value" : selectedLayerValue}</button> */}
+                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                        </svg>
+                                                    </div>
+                                                    {
+                                                        trackInsighteValueDropdown &&
+                                                        <div className="selectDivOption top4">
+                                                            {
+                                                                valueFromLayer && valueFromLayer.map((val, index) => (
+                                                                    <span key={index} onClick={() => handleSelectValue(val)}>{
+                                                                        fieldType === "date" ? (
+                                                                            <>
+                                                                                {formatDate(parseInt(val))}
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                {val}
+                                                                            </>
+                                                                        )
+                                                                    }</span>
+                                                                ))
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div className="queryBuilderDropdown-Content-button">
+                                                    <button className='btnQuery' onClick={handleQueryData}>Query Data</button>
+                                                    <button className='btnQuery' onClick={handleResetQueryData}>Reset</button>
+                                                </div>
+
+                                            </div>
                                         </div>
-                                        <div className="queryBuilderDropdown-Content">
-                                            <div className="queryBuilderDropdown-Content-Track">
-                                                <span>TrackInsightes :</span>
-                                                <div className="selectDiv">
-                                                    <button onClick={handleTrackScreenDropdown} className='selectedDivButton'>{selectedTrackInsightesScreen !== "" ? selectedTrackInsightesScreen : "selecte Screen"}</button>
-                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                    </svg>
-                                                </div>
-                                                {
-                                                    trackInsighteScreenDropdown &&
-                                                    <div className="selectDivOption">
-                                                        {
-                                                            screens && screens.map((screen) => (
-                                                                <span key={screen.value} value={screen.value} onClick={() => handleTrackInsighteScreenSelect(screen.title)}>{screen.label}</span>
-                                                            ))
-                                                        }
-
-                                                    </div>
-                                                }
+                                    }
+                                    <img className='filterIcon' title='Custome Filter' src="/cris/images/filter.png" alt="filter.png" onClick={handleFilterZoneDivSecRoute} />
+                                    {
+                                        openZoneDivFilter &&
+                                        <div className="filterZoneDivSecRoute">
+                                            <div className="filterZonedivSecRoute-Header">
+                                                <h3>Custome Filter </h3><span onClick={handleZoneDivSecRouteClose}>X</span>
                                             </div>
-                                            <div className="queryBuilderDropdown-Content-Track">
-                                                <span>Select Layer :</span>
-                                                <div className="selectDiv">
-                                                    <button onClick={handleLayerSelectDropdown} className='selectedDivButton'>{selectedLayerFromMap !== "" ? selectedLayerFromMap : "selecte Layer"}</button>
-                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                    </svg>
-                                                </div>
-                                                {
-                                                    trackInsighteLayerDropdown &&
-                                                    <div className="selectDivOption top1">
-                                                        {
-                                                            layerFromMap && layerFromMap.map((layer, index) => (
-                                                                <span key={index} onClick={() => handleLayerSelectFromMap(layer)}>{layer}</span>
-                                                            ))
-                                                        }
-
-                                                    </div>
-                                                }
-                                            </div>
-                                            <div className="queryBuilderDropdown-Content-Track">
-                                                <span>Select Field :</span>
-                                                <div className="selectDiv">
-                                                    <button onClick={handleFieldSelectDropdown} className='selectedDivButton'>{selectedLayerField !== "" ? displayField : "selecte Field"}</button>
-                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                    </svg>
-                                                </div>
-                                                {
-                                                    trackInsighteFieldDropdown &&
-                                                    <div className="selectDivOption top2">
-                                                        {
-                                                            commonField && commonField.map((field, index) => (
-                                                                <span key={index} onClick={() => handleSelectFieldFromLayer(field.value)}>{field.label}</span>
-                                                            ))
-                                                        }
-                                                    </div>
-                                                }
-                                            </div>
-                                            <div className="queryBuilderDropdown-Content-Track">
-                                                <span>Select Operator :</span>
-                                                <div className="selectDiv">
-                                                    <button onClick={handleSignSelectDropdown} className='selectedDivButton'>{signSelected === "" ? "select Operator" : signLabel}</button>
-                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                    </svg>
-                                                </div>
-                                                {
-                                                    trackInsighteSignDropdown &&
-                                                    <div className="selectDivOption top3">
-                                                        {
-                                                            operator && operator.map((sign) => (
-                                                                <span key={sign.id} onClick={() => handleSelectSign(sign.value)}>{sign.label}</span>
-                                                            ))
-                                                        }
-                                                    </div>
-                                                }
-                                            </div>
-                                            <div className="queryBuilderDropdown-Content-Track">
-                                                <span>Select Value :</span>
-                                                <div className="selectDiv">
-                                                    <button onClick={handleValueSelectDropdown} className='selectedDivButton'>{selectedLayerValue === "" ? "select Value" : `${fieldType === "date" ? `${formatDate(parseInt(selectedLayerValue))}` : selectedLayerValue}`}</button>
-                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                    </svg>
-                                                </div>
-                                                {
-                                                    trackInsighteValueDropdown &&
-                                                    <div className="selectDivOption top4">
-                                                        {
-                                                            valueFromLayer && valueFromLayer.map((val, index) => (
-                                                                <span key={index} onClick={() => handleSelectValue(val)}>{
-                                                                    fieldType === "date" ? (
+                                            <div className="filterZoneDivSecRoute-Content">
+                                                <div className="dropdown">
+                                                    <span>Zone :</span>
+                                                    <div className="multiSelect" ref={zoneDropdownRef} >
+                                                        <button onClick={handleZoneDropDown}>
+                                                            <div className='selectedOption'>
+                                                                {
+                                                                    railwayZone.length > 0 ? (
                                                                         <>
-                                                                            {formatDate(parseInt(val))}
+                                                                            {
+                                                                                railwayZone.map((railIn, index) => (
+                                                                                    <span
+                                                                                        key={index}
+                                                                                        className='spanBtn'
+                                                                                    >{railIn}
+                                                                                    </span>
+                                                                                ))
+                                                                            }
                                                                         </>
                                                                     ) : (
                                                                         <>
-                                                                            {val}
+                                                                            <span>All</span>
                                                                         </>
                                                                     )
-                                                                }</span>
-                                                            ))
+                                                                }
+                                                            </div>
+                                                            <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                            </svg>
+                                                        </button>
+                                                        {
+                                                            zoneDropDown &&
+                                                            <div className="multiOptions">
+                                                                {
+                                                                    railwayNames && railwayNames.map((item, index) => (
+                                                                        <label
+                                                                            key={index}
+                                                                            style={{
+                                                                                color: `${item.isSelected === true ? "white" : ""}`,
+                                                                                background: `${item.isSelected === true ? "rgb(4, 90, 160)" : ""}`
+                                                                            }}
+                                                                            onClick={() => handleRailZoneSelect(item)}
+                                                                        >
+                                                                            {item.label}
+                                                                        </label>
+                                                                    ))
+                                                                }
+                                                            </div>
                                                         }
                                                     </div>
-                                                }
-                                            </div>
-                                            <div className="queryBuilderDropdown-Content-button">
-                                                <button className='btnQuery' onClick={handleQueryData}>Query Data</button>
-                                                <button className='btnQuery' onClick={handleResetQueryData}>Reset</button>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                }
-                                <img className='filterIcon' title='Custome Filter' src="/cris/images/filter.png" alt="filter.png" onClick={handleFilterZoneDivSecRoute} />
-                                {
-                                    openZoneDivFilter &&
-                                    <div className="filterZoneDivSecRoute">
-                                        <div className="filterZonedivSecRoute-Header">
-                                            <h3>Custome Filter </h3><span onClick={handleZoneDivSecRouteClose}>X</span>
-                                        </div>
-                                        <div className="filterZoneDivSecRoute-Content">
-                                            <div className="dropdown">
-                                                <span>Zone :</span>
-                                                <div className="multiSelect" ref={zoneDropdownRef} >
-                                                    <button onClick={handleZoneDropDown}>
-                                                        <div className='selectedOption'>
-                                                            {
-                                                                railwayZone.length > 0 ? (
-                                                                    <>
-                                                                        {
-                                                                            railwayZone.map((railIn, index) => (
-                                                                                <span
-                                                                                    key={index}
-                                                                                    className='spanBtn'
-                                                                                >{railIn}
-                                                                                </span>
-                                                                            ))
-                                                                        }
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <span>All</span>
-                                                                    </>
-                                                                )
-                                                            }
-                                                        </div>
-                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                        </svg>
-                                                    </button>
-                                                    {
-                                                        zoneDropDown &&
-                                                        <div className="multiOptions">
-                                                            {
-                                                                railwayNames && railwayNames.map((item, index) => (
-                                                                    <label
-                                                                        key={index}
-                                                                        style={{
-                                                                            color: `${item.isSelected === true ? "white" : ""}`,
-                                                                            background: `${item.isSelected === true ? "rgb(4, 90, 160)" : ""}`
-                                                                        }}
-                                                                        onClick={() => handleRailZoneSelect(item)}
-                                                                    >
-                                                                        {item.label}
-                                                                    </label>
-                                                                ))
-                                                            }
-                                                        </div>
-                                                    }
                                                 </div>
-                                            </div>
-                                            <div className="dropdown">
-                                                <span>Division :</span>
-                                                <div className="multiSelect" ref={divisionDropdownRef} >
-                                                    <button onClick={handleDiviDropDown}>
-                                                        <div className='selectedOption'>
-                                                            {
-                                                                railwayDivision.length > 0 ? (
-                                                                    <>
-                                                                        {
-                                                                            railwayDivision.map((railIn, index) => (
-                                                                                <span
-                                                                                    key={index}
-                                                                                    className='spanBtn'
-                                                                                >{railIn}
-                                                                                </span>
-                                                                            ))
-                                                                        }
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <span>All</span>
-                                                                    </>
-                                                                )
-                                                            }
-                                                        </div>
-                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                        </svg>
-                                                    </button>
-                                                    {
-                                                        divisionDropDown &&
-                                                        <div className="multiOptions">
-                                                            {
-                                                                divisionNames && divisionNames.map((item, index) => (
-                                                                    <label
-                                                                        key={index}
-                                                                        style={{
-                                                                            color: `${item.isSelected === true ? "white" : ""}`,
-                                                                            background: `${item.isSelected === true ? "rgb(4, 90, 160)" : ""}`
-                                                                        }}
-                                                                        onClick={() => handleDivisionSelect(item)}
-                                                                    >
-                                                                        {item.label}
-                                                                    </label>
-                                                                ))
-                                                            }
-                                                        </div>
-                                                    }
-                                                </div>
-                                            </div>
-                                            <div className="dropdown">
-                                                <span>Route :</span>
-                                                <div className="multiSelect" ref={routeDropdownRef} >
-                                                    <button onClick={handleRouteDropDown}>
-                                                        <div className='selectedOption'>
-                                                            {
-                                                                railwayRoute.length > 0 ? (
-                                                                    <>
-                                                                        {
-                                                                            railwayRoute.map((railIn, index) => (
-                                                                                <span
-                                                                                    key={index}
-                                                                                    className='spanBtn'
-                                                                                >{railIn}
-                                                                                </span>
-                                                                            ))
-                                                                        }
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <span>All</span>
-                                                                    </>
-                                                                )
-                                                            }
-                                                        </div>
-                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                        </svg>
-                                                    </button>
-                                                    {
-                                                        routeDropDown &&
-                                                        <div className="multiOptions">
-                                                            {
-                                                                routeNames && routeNames.map((item, index) => (
-                                                                    <label
-                                                                        key={index}
-                                                                        style={{
-                                                                            color: `${item.isSelected === true ? "white" : ""}`,
-                                                                            background: `${item.isSelected === true ? "rgb(4, 90, 160)" : ""}`
-                                                                        }}
-                                                                        onClick={() => handleRouteSelect(item)}
-                                                                    >
-                                                                        {item.label}
-                                                                    </label>
-                                                                ))
-                                                            }
-                                                        </div>
-                                                    }
-                                                </div>
-                                            </div>
-                                            <div className="dropdown">
-                                                <span>Section :</span>
-                                                <div className="multiSelect " ref={sectionDropdownRef} >
-                                                    <button onClick={handleSectionDropDown}>
-                                                        <div className='selectedOption'>
-                                                            {
-                                                                railwaySection.length > 0 ? (
-                                                                    <>
-                                                                        {
-                                                                            railwaySection.map((railIn, index) => (
-                                                                                <span
-                                                                                    key={index}
-                                                                                    className='spanBtn'
-                                                                                >{railIn}
-                                                                                </span>
-                                                                            ))
-                                                                        }
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <span>All</span>
-                                                                    </>
-                                                                )
-                                                            }
-                                                        </div>
-                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                        </svg>
-                                                    </button>
-                                                    {
-                                                        sectionDropDown &&
-                                                        <div className="multiOptions">
-                                                            {
-                                                                sectionNames && sectionNames.map((item, index) => (
-                                                                    <label
-                                                                        key={index}
-                                                                        style={{
-                                                                            color: `${item.isSelected === true ? "white" : ""}`,
-                                                                            background: `${item.isSelected === true ? "rgb(4, 90, 160)" : ""}`
-                                                                        }}
-                                                                        onClick={() => handleSectionSelect(item)}
-                                                                    >
-                                                                        {item.label}
-                                                                    </label>
-                                                                ))
-                                                            }
-                                                        </div>
-                                                    }
-                                                </div>
-                                            </div>
-                                            <div className="dropdown">
-                                                <span>KM Post :</span>
-                                                <div className="kmpostdiv">
-                                                    <div className="fpost">
-                                                        <span>From :</span>
-                                                        <select
-                                                            value={KMFromSelected}
-                                                            onChange={handleKMFromChange}
-                                                        >
-                                                            <option value="">select</option>
-                                                            {Array.from({ length: 1591 }, (_, i) => i + 1).map((km) => (
-                                                                <option key={km} value={km}>
-                                                                    {km}
-                                                                </option>
-                                                            ))}
-                                                        </select>
+                                                <div className="dropdown">
+                                                    <span>Division :</span>
+                                                    <div className="multiSelect" ref={divisionDropdownRef} >
+                                                        <button onClick={handleDiviDropDown}>
+                                                            <div className='selectedOption'>
+                                                                {
+                                                                    railwayDivision.length > 0 ? (
+                                                                        <>
+                                                                            {
+                                                                                railwayDivision.map((railIn, index) => (
+                                                                                    <span
+                                                                                        key={index}
+                                                                                        className='spanBtn'
+                                                                                    >{railIn}
+                                                                                    </span>
+                                                                                ))
+                                                                            }
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <span>All</span>
+                                                                        </>
+                                                                    )
+                                                                }
+                                                            </div>
+                                                            <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                            </svg>
+                                                        </button>
+                                                        {
+                                                            divisionDropDown &&
+                                                            <div className="multiOptions">
+                                                                {
+                                                                    divisionNames && divisionNames.map((item, index) => (
+                                                                        <label
+                                                                            key={index}
+                                                                            style={{
+                                                                                color: `${item.isSelected === true ? "white" : ""}`,
+                                                                                background: `${item.isSelected === true ? "rgb(4, 90, 160)" : ""}`
+                                                                            }}
+                                                                            onClick={() => handleDivisionSelect(item)}
+                                                                        >
+                                                                            {item.label}
+                                                                        </label>
+                                                                    ))
+                                                                }
+                                                            </div>
+                                                        }
                                                     </div>
                                                 </div>
-                                                <div className="kmpostdiv">
-                                                    <div className="fpost">
-                                                        <span>To :</span>
-                                                        <select
-                                                            value={KMToSelected}
-                                                            onChange={handleKMToChange}
-                                                        >
-                                                            <option value="">select</option>
-                                                            {Array.from({ length: 1591 }, (_, i) => i + 1).map((km) => (
-                                                                <option key={km} value={km}>
-                                                                    {km}
-                                                                </option>
-                                                            ))}
-                                                        </select>
+                                                <div className="dropdown">
+                                                    <span>Route :</span>
+                                                    <div className="multiSelect" ref={routeDropdownRef} >
+                                                        <button onClick={handleRouteDropDown}>
+                                                            <div className='selectedOption'>
+                                                                {
+                                                                    railwayRoute.length > 0 ? (
+                                                                        <>
+                                                                            {
+                                                                                railwayRoute.map((railIn, index) => (
+                                                                                    <span
+                                                                                        key={index}
+                                                                                        className='spanBtn'
+                                                                                    >{railIn}
+                                                                                    </span>
+                                                                                ))
+                                                                            }
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <span>All</span>
+                                                                        </>
+                                                                    )
+                                                                }
+                                                            </div>
+                                                            <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                            </svg>
+                                                        </button>
+                                                        {
+                                                            routeDropDown &&
+                                                            <div className="multiOptions">
+                                                                {
+                                                                    routeNames && routeNames.map((item, index) => (
+                                                                        <label
+                                                                            key={index}
+                                                                            style={{
+                                                                                color: `${item.isSelected === true ? "white" : ""}`,
+                                                                                background: `${item.isSelected === true ? "rgb(4, 90, 160)" : ""}`
+                                                                            }}
+                                                                            onClick={() => handleRouteSelect(item)}
+                                                                        >
+                                                                            {item.label}
+                                                                        </label>
+                                                                    ))
+                                                                }
+                                                            </div>
+                                                        }
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div className='dropdownDateDiv'>
-                                                <span>Date Range :</span>
-                                                <DateRangePicker
-                                                    startDate={startDate}
-                                                    startDateId="start_date"
-                                                    endDate={endDate}
-                                                    endDateId="end_date"
-                                                    onDatesChange={handleDatesChange}
-                                                    focusedInput={focusedInput}
-                                                    onFocusChange={focusedInput => setFocusedInput(focusedInput)}
-                                                    isOutsideRange={() => false}
-                                                    displayFormat="DD/MM/YYYY"
-                                                    showClearDates={true}
-                                                    numberOfMonths={1}
-                                                    renderMonthElement={({ month, onMonthSelect, onYearSelect }) => (
-                                                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                                <div className="dropdown">
+                                                    <span>Section :</span>
+                                                    <div className="multiSelect " ref={sectionDropdownRef} >
+                                                        <button onClick={handleSectionDropDown}>
+                                                            <div className='selectedOption'>
+                                                                {
+                                                                    railwaySection.length > 0 ? (
+                                                                        <>
+                                                                            {
+                                                                                railwaySection.map((railIn, index) => (
+                                                                                    <span
+                                                                                        key={index}
+                                                                                        className='spanBtn'
+                                                                                    >{railIn}
+                                                                                    </span>
+                                                                                ))
+                                                                            }
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <span>All</span>
+                                                                        </>
+                                                                    )
+                                                                }
+                                                            </div>
+                                                            <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                            </svg>
+                                                        </button>
+                                                        {
+                                                            sectionDropDown &&
+                                                            <div className="multiOptions">
+                                                                {
+                                                                    sectionNames && sectionNames.map((item, index) => (
+                                                                        <label
+                                                                            key={index}
+                                                                            style={{
+                                                                                color: `${item.isSelected === true ? "white" : ""}`,
+                                                                                background: `${item.isSelected === true ? "rgb(4, 90, 160)" : ""}`
+                                                                            }}
+                                                                            onClick={() => handleSectionSelect(item)}
+                                                                        >
+                                                                            {item.label}
+                                                                        </label>
+                                                                    ))
+                                                                }
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div className="dropdown">
+                                                    <span>KM Post :</span>
+                                                    <div className="kmpostdiv">
+                                                        <div className="fpost">
+                                                            <span>From :</span>
                                                             <select
-                                                                value={month.month()}
-                                                                onChange={(e) => onMonthSelect(month, e.target.value)}
+                                                                value={KMFromSelected}
+                                                                onChange={handleKMFromChange}
                                                             >
-                                                                {moment.months().map((label, value) => (
-                                                                    <option value={value} key={value}>
-                                                                        {label}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                            <select
-                                                                value={month.year()}
-                                                                onChange={(e) => onYearSelect(month, e.target.value)}
-                                                            >
-                                                                {Array.from({ length: 100 }, (_, i) => moment().year() - i).map(year => (
-                                                                    <option value={year} key={year}>
-                                                                        {year}
+                                                                <option value="">select</option>
+                                                                {Array.from({ length: 1591 }, (_, i) => i + 1).map((km) => (
+                                                                    <option key={km} value={km}>
+                                                                        {km}
                                                                     </option>
                                                                 ))}
                                                             </select>
                                                         </div>
-                                                    )}
-                                                />
-                                            </div>
-                                            <div className="dropdownBtnDvi">
-                                                <button className='btnQuery' onClick={handleResetFilterZoneDivRoute}>Reset</button>
+                                                    </div>
+                                                    <div className="kmpostdiv">
+                                                        <div className="fpost">
+                                                            <span>To :</span>
+                                                            <select
+                                                                value={KMToSelected}
+                                                                onChange={handleKMToChange}
+                                                            >
+                                                                <option value="">select</option>
+                                                                {Array.from({ length: 1591 }, (_, i) => i + 1).map((km) => (
+                                                                    <option key={km} value={km}>
+                                                                        {km}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className='dropdownDateDiv'>
+                                                    <span>Date Range :</span>
+                                                    <DateRangePicker
+                                                        startDate={startDate}
+                                                        startDateId="start_date"
+                                                        endDate={endDate}
+                                                        endDateId="end_date"
+                                                        onDatesChange={handleDatesChange}
+                                                        focusedInput={focusedInput}
+                                                        onFocusChange={focusedInput => setFocusedInput(focusedInput)}
+                                                        isOutsideRange={() => false}
+                                                        displayFormat="DD/MM/YYYY"
+                                                        showClearDates={true}
+                                                        numberOfMonths={1}
+                                                        renderMonthElement={({ month, onMonthSelect, onYearSelect }) => (
+                                                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                                                <select
+                                                                    value={month.month()}
+                                                                    onChange={(e) => onMonthSelect(month, e.target.value)}
+                                                                >
+                                                                    {moment.months().map((label, value) => (
+                                                                        <option value={value} key={value}>
+                                                                            {label}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                                <select
+                                                                    value={month.year()}
+                                                                    onChange={(e) => onYearSelect(month, e.target.value)}
+                                                                >
+                                                                    {Array.from({ length: 100 }, (_, i) => moment().year() - i).map(year => (
+                                                                        <option value={year} key={year}>
+                                                                            {year}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div className="dropdownBtnDvi">
+                                                    <button className='btnQuery' onClick={handleResetFilterZoneDivRoute}>Reset</button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                }
-                                <img className='filterIcon' title='Style Renderer' src="/cris/images/styleIcon.png" alt="filter.png" onClick={handleStyleBreak} />
-                                {
-                                    openStyleBreak &&
-                                    <div className="styleBreakdropDown">
-                                        <div className="queryBuilderDropdown-Header">
-                                            <h3>Style Renderer</h3><span onClick={handleStyleBreakClose}>X</span>
-                                        </div>
-                                        <div className="queryBuilderDropdown-Content">
-                                            <div className="queryBuilderDropdown-Content-Track">
-                                                <span>TrackScreen :</span>
-                                                <div className="selectDiv">
-                                                    <button onClick={handleRendererScreenDropdown} className='selectedDivButton'>{selectedScreenForStyle !== "" ? selectedScreenForStyle : "selecte Screen"}</button>
-                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                    </svg>
-                                                </div>
-                                                {
-                                                    trackScreenRendererDropdown &&
-                                                    <div className="selectDivOption">
-                                                        {
-                                                            screens && screens.map((screen) => (
-                                                                <span key={screen.value} onClick={() => handleSelectedScreenForStyle(screen.title)}>{screen.label}</span>
-                                                            ))
-                                                        }
-
-                                                    </div>
-                                                }
+                                    }
+                                    <img className='filterIcon' title='Style Renderer' src="/cris/images/styleIcon.png" alt="filter.png" onClick={handleStyleBreak} />
+                                    {
+                                        openStyleBreak &&
+                                        <div className="styleBreakdropDown">
+                                            <div className="queryBuilderDropdown-Header">
+                                                <h3>Style Renderer</h3><span onClick={handleStyleBreakClose}>X</span>
                                             </div>
-                                            <div className="queryBuilderDropdown-Content-Track">
-                                                <span>Select Layer :</span>
-                                                <div className="selectDiv">
-                                                    <button onClick={handleRendererLayerDropdown} className='selectedDivButton'>{selectedLayerForStyle !== "" ? selectedLayerForStyle : "selecte Layer"}</button>
-                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                    </svg>
-                                                </div>
-                                                {
-                                                    trackLayerRendererDropdown &&
-                                                    <div className="selectDivOption top1">
-                                                        {
-                                                            layerFromScreenStyle && layerFromScreenStyle.map((layer, index) => (
-                                                                <span key={index} onClick={() => handleSelectedLayerForStyle(layer)}>{layer}</span>
-                                                            ))
-                                                        }
-
+                                            <div className="queryBuilderDropdown-Content">
+                                                <div className="queryBuilderDropdown-Content-Track">
+                                                    <span>TrackScreen :</span>
+                                                    <div className="selectDiv">
+                                                        <button onClick={handleRendererScreenDropdown} className='selectedDivButton'>{selectedScreenForStyle !== "" ? selectedScreenForStyle : "selecte Screen"}</button>
+                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                        </svg>
                                                     </div>
-                                                }
-                                            </div>
-                                            <div className="queryBuilderDropdown-Content-Track">
-                                                <span>Select Field :</span>
-                                                {/* <select
-                                                    value={selectedFieldForStyle}
-                                                    onChange={handleSelectFieldForStyle}
-                                                    className="custome-select"
-                                                >
-                                                    <option>select Field</option>
                                                     {
-                                                        fieldsFromLayerStyle && fieldsFromLayerStyle.map((field, index) => (
-                                                            <option key={index} value={field}>{field}</option>
-                                                        ))
+                                                        trackScreenRendererDropdown &&
+                                                        <div className="selectDivOption">
+                                                            {
+                                                                screens && screens.map((screen) => (
+                                                                    <span key={screen.value} onClick={() => handleSelectedScreenForStyle(screen.title)}>{screen.label}</span>
+                                                                ))
+                                                            }
+
+                                                        </div>
                                                     }
-                                                </select> */}
-                                                <div className="selectDiv">
-                                                    <button onClick={handleFieldRendererDropdown} className='selectedDivButton'>{selectedFieldForStyle !== "" ? selectedFieldForStyle : "selecte Field"}</button>
-                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                    </svg>
                                                 </div>
-                                                {
-                                                    trackFieldRendererDropdown &&
-                                                    <div className="selectDivOption top2">
-                                                        {
-                                                            fieldsFromLayerStyle && fieldsFromLayerStyle.map((field, index) => (
-                                                                <span key={index} onClick={() => handleSelectFieldForStyle(field)}>{field}</span>
-                                                            ))
-                                                        }
+                                                <div className="queryBuilderDropdown-Content-Track">
+                                                    <span>Select Layer :</span>
+                                                    <div className="selectDiv">
+                                                        <button onClick={handleRendererLayerDropdown} className='selectedDivButton'>{selectedLayerForStyle !== "" ? selectedLayerForStyle : "selecte Layer"}</button>
+                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                        </svg>
                                                     </div>
-                                                }
-                                            </div>
-                                            <div className="queryBuilderDropdown-Content-button">
-                                                <button className='btnQuery' onClick={handleRemoveStyleFromLayer}>Remove</button>
+                                                    {
+                                                        trackLayerRendererDropdown &&
+                                                        <div className="selectDivOption top1">
+                                                            {
+                                                                layerFromScreenStyle && layerFromScreenStyle.map((layer, index) => (
+                                                                    <span key={index} onClick={() => handleSelectedLayerForStyle(layer)}>{layer}</span>
+                                                                ))
+                                                            }
+
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div className="queryBuilderDropdown-Content-Track">
+                                                    <span>Select Field :</span>
+                                                    <div className="selectDiv">
+                                                        <button onClick={handleFieldRendererDropdown} className='selectedDivButton'>{selectedFieldForStyle !== "" ? fieldLabelForStyle : "selecte Field"}</button>
+                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                        </svg>
+                                                    </div>
+                                                    {
+                                                        trackFieldRendererDropdown &&
+                                                        <div className="selectDivOption top2">
+                                                            {
+                                                                fieldsFromLayerStyle && fieldsFromLayerStyle.map((field, index) => (
+                                                                    <span key={index} onClick={() => handleSelectFieldForStyle(field.value)}>{field.label}</span>
+                                                                ))
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div className="queryBuilderDropdown-Content-button">
+                                                    <button className='btnQuery' onClick={handleRemoveStyleFromLayer}>Remove</button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                }
-                                <img title='Logout' className='filterIcon' src="/cris/images/log.png" alt="log.png" style={{ filter: "invert(100%)", color: "white" }} onClick={handleLogout} />
+                                    }
+                                    <img title='Logout' className='filterIcon' src="/cris/images/log.png" alt="log.png" style={{ filter: "invert(100%)", color: "white" }} onClick={openLogoutMOdal} />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div className="splitScreen-RowTwo">
-                    <div className={`splitScreen-Mainscreen grid-${numRows}-${numCols}`}>
-                        {
-                            screens && screens.map((item, index) => (
-                                <div className='mapView-div' id={`viewDiv-${item.id}`} key={item.id}
-                                    style={{
-                                        border: '2px solid white',
-                                        margin: "2px"
-                                    }}
-                                    draggable
-                                    onDragStart={(event) => handleDragStart(event, index)}
-                                    onDragOver={(event) => handleDragOver(event, index)}
-                                    onDrop={(event) => handleDrop(event, index)}
-                                >
-                                    {
-                                        item.label &&
-                                        <div id={item.id} className='mapView-div-header'>
-                                            <h3>{item.label}</h3>
-                                            <span
-                                                onClick={() => handleCloseMapDiv(item.id)}
-                                            >X</span>
+                    <div className="splitScreen-RowTwo">
+                        <div className={`splitScreen-Mainscreen grid-${numRows}-${numCols}`}>
+                            {
+                                screens && screens.map((item, index) => (
+                                    <div className='mapView-div' id={`viewDiv-${item.id}`} key={item.id}
+                                        style={{
+                                            border: '2px solid white',
+                                            margin: "2px"
+                                        }}
+                                        draggable
+                                        onDragStart={(event) => handleDragStart(event, index)}
+                                        onDragOver={(event) => handleDragOver(event, index)}
+                                        onDrop={(event) => handleDrop(event, index)}
+                                    >
+                                        {
+                                            item.label &&
+                                            <div id={item.id} className='mapView-div-header'>
+                                                <h3>{item.label}</h3>
+                                                <span
+                                                    onClick={() => handleCloseMapDiv(item.id)}
+                                                >X</span>
+                                            </div>
+                                        }
+                                        <div className="layerContainer" id={`layerContainer-${item.id}`}>
+                                            <div className="tableDiv" id={`tableDiv-${item.id}`}></div>
                                         </div>
-                                    }
-                                    <div className="layerContainer" id={`layerContainer-${item.id}`}>
-                                        <div className="tableDiv" id={`tableDiv-${item.id}`}></div>
                                     </div>
-                                </div>
-                            ))
-                        }
+                                ))
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 }
 export default SplitScreen;

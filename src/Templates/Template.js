@@ -1,3 +1,68 @@
+//Rail Weld Fracture Renderer and PopUpTemplate
+const railWeldFractureRenderer = {
+    type: "simple",
+    symbol: {
+        type: "simple-marker",
+        size: 5,
+        color: "#720455",
+        outline: null
+    }
+};
+const railWeldFracturePopUpTemplate = {
+    title: "Rail Weld Fracture",
+    content: "<table class='table table-striped'>" +
+        "<tr><td>Type Of Route</td><td class='popup-cell'>{routeclass}}</td></tr>" +
+        "<tr><td>Fracture Date</td><td class='popup-cell'>{date_time_of_fracture}}</td></tr>" +
+        "<tr><td>Railway</td><td class='popup-cell'>{railway}</td></tr>" +
+        "<tr><td>Division</td><td class='popup-cell'>{division}</td></tr>" +
+        "<tr><td>Route</td><td class='popup-cell'>{route}</td></tr>" +
+        "<tr><td>Section</td><td class='popup-cell'>{section}</td></tr>" +
+        "</table>",
+    fieldInfos: [
+        {
+            fieldName: "routeclass",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "date_time_of_fracture",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "railway",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "division",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "section",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "route",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+    ]
+};
 //GMT Details ClassBreak, Renderer and PopUpTemplate
 const gmtClassBreaks = [
     {
@@ -107,7 +172,6 @@ const GMTPopupTemplate = {
         },
     ]
 };
-
 //Speed Restriction ClassBreak, Renderer and PopUpTemplate
 const speedclassBreaks = [
     {
@@ -155,6 +219,7 @@ const speedPopUpTemplate = {
     content: "<table class='table table-striped'>" +
         "<tr><td>Type Of Route</td><td class='popup-cell'>{routeclass}</td></tr>" +
         "<tr><td>Speed</td><td class='popup-cell'>{speed}}</td></tr>" +
+        "<tr><td>Imposition Date</td><td class='popup-cell'>{date_of_im}}</td></tr>" +
         "<tr><td>Railway</td><td class='popup-cell'>{railway}</td></tr>" +
         "<tr><td>Division</td><td class='popup-cell'>{division}</td></tr>" +
         "<tr><td>Section</td><td class='popup-cell'>{section}</td></tr>" +
@@ -198,21 +263,43 @@ const speedPopUpTemplate = {
         },
     ]
 };
-//Rail Weld Fracture Renderer and PopUpTemplate
-const railWeldFractureRenderer = {
-    type: "simple",
-    symbol: {
-        type: "simple-marker",
-        size: 5,
-        color: "#720455",
-        outline: null
-    }
-};
-const railWeldFracturePopUpTemplate = {
-    title: "Rail Weld Fracture",
+//Level Crossing ClassBreak, Renderer and PopUpTemplate
+const levelCrossingClassBreak = [
+    {
+        minValue: 0,
+        maxValue: 99000,
+        symbol: {
+            type: "simple-marker",
+            style: "circle",
+            color: "red",
+            size: 6,
+        },
+        label: "< 1 Lac"
+    },
+    {
+        minValue: 100000,
+        maxValue: Infinity,
+        symbol: {
+            type: "simple-marker",
+            style: "circle",
+            size: 6,
+            color: "green",
+        },
+        label: "> 1 Lac"
+    },
+];
+const levelCrossingRenderer = {
+    type: "class-breaks",
+    field: "tvu",
+    classBreakInfos: levelCrossingClassBreak
+}
+const levelCrossingPopUpTemplate = {
+    // autocasts as new PopupTemplate()
+    title: "Level Crossing",
     content: "<table class='table table-striped'>" +
         "<tr><td>Type Of Route</td><td class='popup-cell'>{routeclass}}</td></tr>" +
-        "<tr><td>Fracture Date</td><td class='popup-cell'>{date_time_of_fracture}}</td></tr>" +
+        "<tr><td>TVU</td><td class='popup-cell'>{tvu}}</td></tr>" +
+        "<tr><td>Rail Paint Date</td><td class='popup-cell'>{rail_painting_date}}</td></tr>" +
         "<tr><td>Railway</td><td class='popup-cell'>{railway}</td></tr>" +
         "<tr><td>Division</td><td class='popup-cell'>{division}</td></tr>" +
         "<tr><td>Route</td><td class='popup-cell'>{route}</td></tr>" +
@@ -227,7 +314,79 @@ const railWeldFracturePopUpTemplate = {
             }
         },
         {
-            fieldName: "date_time_of_fracture",
+            fieldName: "tvu",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName:"rail_painting_date",
+            format:{
+                digitSeparator: true,
+                places:0
+            }
+        },
+        {
+            fieldName: "railway",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "division",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "route",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "section",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+    ]
+};
+//Track Network Distribution ClassBreak, Renderer and PopUpTemplate
+const trackNetworkDistributionPopUpTemplate = {
+    // autocasts as new PopupTemplate()
+    title: "Track Network Distribution",
+    content: "<table class='table table-striped'>" +
+        "<tr><td>Type Of Route</td><td class='popup-cell'>{routeclass}}</td></tr>" +
+        "<tr><td>Rail Section</td><td class='popup-cell'>{rail_section}</td></tr>" +
+        "<tr><td>Track Laying Month</td><td class='popup-cell'>{laying_month}</td></tr>" +
+        "<tr><td>Railway</td><td class='popup-cell'>{railway}</td></tr>" +
+        "<tr><td>Division</td><td class='popup-cell'>{division}</td></tr>" +
+        "<tr><td>Route</td><td class='popup-cell'>{route}</td></tr>" +
+        "<tr><td>Section</td><td class='popup-cell'>{section}</td></tr>" +
+        "</table>",
+    fieldInfos: [
+        {
+            fieldName: "routeclass",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "rail_section",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "laying_month",
             format: {
                 digitSeparator: true,
                 places: 0
@@ -248,7 +407,65 @@ const railWeldFracturePopUpTemplate = {
             }
         },
         {
+            fieldName: "route",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
             fieldName: "section",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+    ]
+};
+//Weld Fracture Report Renderer and PopUpTemplate
+const weldFractureReportRenderer = {
+    type: "simple", // autocasts as new SimpleRenderer()
+    symbol: {
+        type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
+        size: 5,
+        color: "#FF5F00",
+        outline: null
+    }
+}
+const weldFractureReportPopUpTemplate = {
+    title: "Weld Fracture Report",
+    content: "<table class='table table-striped'>" +
+        "<tr><td>Type Of Route</td><td class='popup-cell'>{routeclass}}</td></tr>" +
+        "<tr><td>Welding Date</td><td class='popup-cell'>{date_of_welding}}</td></tr>" +
+        "<tr><td>Railway</td><td class='popup-cell'>{railway}</td></tr>" +
+        "<tr><td>Division</td><td class='popup-cell'>{division}</td></tr>" +
+        "<tr><td>Section</td><td class='popup-cell'>{section}</td></tr>" +
+        "<tr><td>Route</td><td class='popup-cell'>{route}</td></tr>" +
+        "</table>",
+    fieldInfos: [
+        {
+            fieldName: "routeclass",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "date_of_welding",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "railway",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "division",
             format: {
                 digitSeparator: true,
                 places: 0
@@ -256,6 +473,13 @@ const railWeldFracturePopUpTemplate = {
         },
         {
             fieldName: "route",
+            format: {
+                digitSeparator: true,
+                places: 0
+            }
+        },
+        {
+            fieldName: "section",
             format: {
                 digitSeparator: true,
                 places: 0
@@ -349,309 +573,6 @@ const permissibleSpeedPopUpTemplate = {
         },
     ]
 };
-//Track Network Distribution ClassBreak, Renderer and PopUpTemplate
-const trackNetworkDistributionClassBreak = [
-    {
-        value: "60 Kg",
-        symbol: {
-            type: "simple-line",
-            style: "solid",
-            color: "#BED754",
-            width: 2
-        },
-        label: "60 Kg"
-    },
-    {
-        value: "52 Kg",
-        symbol: {
-            type: "simple-line",
-            style: "solid",
-            color: "#3A1078",
-            width: 2
-        },
-        label: "52 Kg"
-    },
-    {
-        value: "52KG D MARK",
-        symbol: {
-            type: "simple-line",
-            style: "solid",
-            color: "#57A6A1",
-            width: 2
-        },
-        label: "52KG D MARK"
-    },
-    {
-        value: "60KG D MARK",
-        symbol: {
-            type: "simple-line",
-            style: "solid",
-            color: "#F97300",
-            width: 2
-        },
-        label: "60KG D MARK"
-    },
-    {
-        value: "68 Kg",
-        symbol: {
-            type: "simple-line",
-            style: "solid",
-            color: "#F97300",
-            width: 2
-        },
-        label: "68 Kg"
-    },
-    {
-        value: "Zu-1-60",
-        symbol: {
-            type: "simple-line",
-            style: "solid",
-            color: "#F97300",
-            width: 2
-        },
-        label: "Zu-1-60"
-    },
-    {
-        value: "90 Lbs",
-        symbol: {
-            type: "simple-line",
-            style: "solid",
-            color: "#F97300",
-            width: 2
-        },
-        label: "90 Lbs"
-    },
-    {
-        value: "Others",
-        symbol: {
-            type: "simple-line",
-            style: "solid",
-            color: "#F97300",
-            width: 2
-        },
-        label: "Others"
-    },
-
-];
-const trackNetworkDistributionRenderer = {
-    type: "class-breaks",
-    field: "rail_section",
-    classBreakInfos: trackNetworkDistributionClassBreak
-}
-const trackNetworkDistributionPopUpTemplate = {
-    // autocasts as new PopupTemplate()
-    title: "Track Network Distribution",
-    content: "<table class='table table-striped'>" +
-        "<tr><td>Type Of Route</td><td class='popup-cell'>{routeclass}}</td></tr>" +
-        "<tr><td>Rail Section</td><td class='popup-cell'>{rail_section}</td></tr>" +
-        "<tr><td>Railway</td><td class='popup-cell'>{railway}</td></tr>" +
-        "<tr><td>Division</td><td class='popup-cell'>{division}</td></tr>" +
-        "<tr><td>Route</td><td class='popup-cell'>{route}</td></tr>" +
-        "<tr><td>Section</td><td class='popup-cell'>{section}</td></tr>" +
-        "</table>",
-    fieldInfos: [
-        {
-            fieldName: "routeclass",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "rail_section",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "railway",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "division",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "route",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "section",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-    ]
-};
-//Level Crossing ClassBreak, Renderer and PopUpTemplate
-const levelCrossingClassBreak = [
-    {
-        minValue: 0,
-        maxValue: 99000,
-        symbol: {
-            type: "simple-marker",
-            style: "circle",
-            color: "red",
-            size: 6,
-        },
-        label: "< 1 Lac"
-    },
-    {
-        minValue: 100000,
-        maxValue: Infinity,
-        symbol: {
-            type: "simple-marker",
-            style: "circle",
-            size: 6,
-            color: "green",
-        },
-        label: "> 1 Lac"
-    },
-];
-const levelCrossingRenderer = {
-    type: "class-breaks",
-    field: "tvu",
-    classBreakInfos: levelCrossingClassBreak
-}
-const levelCrossingPopUpTemplate = {
-    // autocasts as new PopupTemplate()
-    title: "Level Crossing",
-    content: "<table class='table table-striped'>" +
-        "<tr><td>Type Of Route</td><td class='popup-cell'>{routeclass}}</td></tr>" +
-        "<tr><td>TVU</td><td class='popup-cell'>{tvu}}</td></tr>" +
-        "<tr><td>Railway</td><td class='popup-cell'>{railway}</td></tr>" +
-        "<tr><td>Division</td><td class='popup-cell'>{division}</td></tr>" +
-        "<tr><td>Route</td><td class='popup-cell'>{route}</td></tr>" +
-        "<tr><td>Section</td><td class='popup-cell'>{section}</td></tr>" +
-        "</table>",
-    fieldInfos: [
-        {
-            fieldName: "routeclass",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "tvu",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "railway",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "division",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "route",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "section",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-    ]
-};
-//Weld Fracture Report Renderer and PopUpTemplate
-const weldFractureReportRenderer = {
-    type: "simple", // autocasts as new SimpleRenderer()
-    symbol: {
-        type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
-        size: 5,
-        color: "#FF5F00",
-        outline: null
-    }
-}
-const weldFractureReportPopUpTemplate = {
-    title: "Weld Fracture Report",
-    content: "<table class='table table-striped'>" +
-        "<tr><td>Type Of Route</td><td class='popup-cell'>{routeclass}}</td></tr>" +
-        "<tr><td>Welding Date</td><td class='popup-cell'>{date_of_welding}}</td></tr>" +
-        "<tr><td>Railway</td><td class='popup-cell'>{railway}</td></tr>" +
-        "<tr><td>Division</td><td class='popup-cell'>{division}</td></tr>" +
-        "<tr><td>Section</td><td class='popup-cell'>{section}</td></tr>" +
-        "<tr><td>Route</td><td class='popup-cell'>{route}</td></tr>" +
-        "</table>",
-    fieldInfos: [
-        {
-            fieldName: "routeclass",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "date__time_of_fracture",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "date_of_welding",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "railway",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "division",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "route",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-        {
-            fieldName: "section",
-            format: {
-                digitSeparator: true,
-                places: 0
-            }
-        },
-    ]
-};
 export const operationalLayers = [
     { name: "Rail Weld Fracture", DateField: "date_time_of_fracture", DateType: "Date" },
     { name: "GMT Details", DateField: "gmt_year", DateType: "FinancialYear" },
@@ -662,9 +583,9 @@ export const operationalLayers = [
 ];
 export const TrackInsightes = [
     { id: 1, label: "Rail Weld Fracture", value: "Rail Weld Fracture", url: "https://mlinfomap.org/server/rest/services/RailWeldFractureAnalysis/MapServer/0", renderer: railWeldFractureRenderer, popupTemplate: railWeldFracturePopUpTemplate, title: "Rail Weld Fracture", checked: false },
-    { id: 2, label: "GMT Details", value: "GMT Details", url: "https://mlinfomap.org/server/rest/services/GMT_Details_Event/MapServer/0", renderer: gmtClassBreaksRenderer, popupTemplate: GMTPopupTemplate, field: "gmt", title: "GMT Details", checked: false },
-    { id: 3, label: "Speed Restriction", value: "Speed Restriction", url: "https://mlinfomap.org/server/rest/services/Speed_Restriction_Event/MapServer/0", renderer: speedclassBreaksRenderer, popupTemplate: speedPopUpTemplate, field: "speed", title: "Speed Restriction", checked: false },
-    { id: 4, label: "Level Crossing", value: "Level Crossing", url: "https://mlinfomap.org/server/rest/services/LevelCrossing/MapServer/0", renderer: levelCrossingRenderer, popupTemplate: levelCrossingPopUpTemplate, field: "tvu", title: "Level Crossing", checked: false },
+    { id: 2, label: "GMT Details", value: "GMT Details", url: "https://mlinfomap.org/server/rest/services/GMT_Details_Event/MapServer/0", renderer: gmtClassBreaksRenderer, popupTemplate: GMTPopupTemplate, title: "GMT Details", checked: false },
+    { id: 3, label: "Speed Restriction", value: "Speed Restriction", url: "https://mlinfomap.org/server/rest/services/Speed_Restriction_Event/MapServer/0", renderer: speedclassBreaksRenderer, popupTemplate: speedPopUpTemplate, title: "Speed Restriction", checked: false },
+    { id: 4, label: "Level Crossing", value: "Level Crossing", url: "https://mlinfomap.org/server/rest/services/LevelCrossing/MapServer/0", renderer: levelCrossingRenderer, popupTemplate: levelCrossingPopUpTemplate, title: "Level Crossing", checked: false },
     { id: 5, label: "Track Network Distribution", value: "Track Network Distribution", url: "https://mlinfomap.org/server/rest/services/TrackNetworkDistribution/MapServer/0", popupTemplate: trackNetworkDistributionPopUpTemplate, field: "rail_section", title: "Track Network Distribution", checked: false },
     { id: 6, label: "Weld Fracture Report", value: "Weld Fracture Report", url: "https://mlinfomap.org/server/rest/services/WeldFractureReport/MapServer/0", renderer: weldFractureReportRenderer, popupTemplate: weldFractureReportPopUpTemplate, title: "Weld Fracture Report", checked: false },
     { id: 7, label: "Permissible Speed Restriction", value: "Permissible Speed Restriction", url: "https://mlinfomap.org/server/rest/services/PermanentSpeedRestrictions/MapServer/0", renderer: permissibleSpeedclassBreaksRenderer, popupTemplate: permissibleSpeedPopUpTemplate, field: "maximum_permissible_speed", title: "Permissible Speed Restriction", checked: false },
@@ -765,19 +686,23 @@ export const commonFields = [
     { label: "Type of Route", value: "routeclass" },
 ]
 const railWeldFractureFields = [
-    { label: "Fracture Date", value: "date___time_of_fracture" },
+    { label: "Fracture Date", value: "date_time_of_fracture" },
 ]
 const gmtDetailsFields = [
     { label: "GMT", value: "gmt" },
+    {label:"GMT Year", value: "gmt_year"}
 ]
 const speedRestrictionFields = [
     { label: "Speed", value: "speed" },
+    { label: "Imposition Date", value: "date_of_im" },
 ]
 const levelCrossingFields = [
-    { label: "TVU", value: "tvu" },
+    { label: "Tvu", value: "tvu" },
+    { label: "Rail Painting Date", value: "rail_painting_date" },
 ]
 const trackNetworkFields = [
     { label: "Rail Section", value: "rail_section" },
+    { label: "Laying Month", value: "laying_month" },
 ]
 const weldFractureReportFields = [
     { label: "Welding Date", value: "date_of_welding" }
