@@ -12,8 +12,8 @@ import 'react-dates/initialize';
 import moment from 'moment';
 import 'react-dates/lib/css/_datepicker.css';
 import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers, operators, commonFields, screenRelatedFields } from '../../Templates/Template';
-const [FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print,
-] = await loadModules(["esri/layers/FeatureLayer", "esri/views/MapView", "esri/Map", "esri/widgets/Zoom", "esri/widgets/ScaleBar",
+const [Popup,FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print,
+] = await loadModules(["esri/widgets/Popup","esri/layers/FeatureLayer", "esri/views/MapView", "esri/Map", "esri/widgets/Zoom", "esri/widgets/ScaleBar",
     "esri/widgets/Expand", "esri/widgets/BasemapGallery", "esri/core/reactiveUtils", "esri/widgets/Legend", "esri/widgets/LayerList", "esri/smartMapping/renderers/type", "esri/Graphic", "esri/identity/IdentityManager", "esri/geometry", "esri/geometry/SpatialReference", "esri/widgets/FeatureTable", "esri/widgets/Fullscreen", "esri/widgets/Print", "esri/renderers/SimpleRenderer",
     "esri/symbols/SimpleFillSymbol"], { css: true });
 const SplitScreen = ({ onLogout }) => {
@@ -674,6 +674,19 @@ const SplitScreen = ({ onLogout }) => {
                         map: map,
                         center: [77.21991492557393, 28.632708300410687],
                         zoom: 8,
+                        popup: new Popup({
+                            dockEnabled: true,
+                            dockOptions: {
+                              // Disables the dock button from the popup
+                              buttonEnabled: false,
+                              // Ignore the default sizes that trigger responsive docking
+                              breakpoint: false,
+                              position:'top-right'
+                            },
+                            visibleElements: {
+                              closeButton: false
+                            }
+                          }),
                         container: `viewDiv-${screen.id}`,
                         ui: {
                             components: ["attribution"]
@@ -2017,17 +2030,6 @@ const SplitScreen = ({ onLogout }) => {
                                             </div>
                                             <div className='dropdownDateDiv'>
                                                 <span>Date Range :</span>
-                                                {/* <DateRangePicker
-                                                    startDate={startDate}
-                                                    startDateId="start_date"
-                                                    endDate={endDate}
-                                                    endDateId="end_date"
-                                                    onDatesChange={handleDatesChange}
-                                                    focusedInput={focusedInput}
-                                                    onFocusChange={focusedInput => setFocusedInput(focusedInput)}
-                                                    isOutsideRange={() => false} // Optional: Allow selecting dates beyond current month
-                                                    displayFormat="DD/MM/YYYY" // Optional: Date display format
-                                                /> */}
                                                 <DateRangePicker
                                                     startDate={startDate}
                                                     startDateId="start_date"
