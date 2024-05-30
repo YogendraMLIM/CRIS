@@ -8,8 +8,8 @@ import {
 } from "../../actions";
 
 const portalUrl = 'https://mlinfomap.org/portal' // Replace with your portal URL
-const APP_ID = '1lgeokxQxgzybNvt' //local
-// const APP_ID = 'sIHzj0uOHUBmzQta' //live
+// const APP_ID = '1lgeokxQxgzybNvt' //local
+const APP_ID = 'sIHzj0uOHUBmzQta' //live
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

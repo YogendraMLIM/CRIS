@@ -223,7 +223,7 @@
   
   .styleBreakdropDown {
     width: 320px;
-    height: 245px;
+    height: 350px;
     position: absolute;
     top: 54px;
     right: 8px;
@@ -231,9 +231,37 @@
     z-index: 2;
     box-shadow: 0 0 2px rgb(131, 131, 131);
   }
+  .queryBuilderDropdown-Head{
+    background-color: #005fa2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .queryBuilderDropdown-Head>h3 {
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    margin-left: 10px;
+  }
   
+  .queryBuilderDropdown-Head>span {
+    width: 22px;
+    height: 22px;
+    border: 2px solid white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 10px;
+    color: white;
+    padding: 4px;
+    font-size: 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
   .queryBuilderDropdown-Header {
-    width: 100%;
+    width: 320px;
     height: 30px;
     background-color: #005fa2;
     display: flex;
@@ -241,6 +269,35 @@
     align-items: center;
   }
   
+  
+  .toggleRenderer{
+    width:calc(320px - 50px) ;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+  }
+  .toggleRenderer>span{
+    width: 100px;
+    height: 22px;
+    display: flex;
+    justify-content: center;
+    font-size: 14px;
+    align-items: center;
+    color: #005fa2;
+    font-weight: bold;
+    margin: 0 10px;
+    background: rgb(238, 238, 238);
+    border-radius: 10px;
+    box-shadow: 0 0 5px rgb(240, 240, 240);
+    cursor: pointer;
+  }
+  .toggleActive{
+    background: #29deeb !important;
+    color: #ffffff !important;
+    transition: 1s ease !important;
+  }
   .queryBuilderDropdown-Header>h3 {
     color: white;
     font-size: 18px;
@@ -308,6 +365,20 @@
     border: .1px solid rgb(116, 116, 116);
     background: white;
     position: relative;
+  }
+
+  .selectDivInput{
+    width: 200px;
+    height: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .selectDivInput>input{
+    padding-left: 10px;
+    border-radius: 10px;
+    border: .1px solid rgb(116, 116, 116);
   }
   
   .selectedDivButton {
@@ -765,7 +836,89 @@
     background-color: rgb(236, 236, 236);
     z-index: 1;
   }
+  /* #resultTable {
+    height: 100%;
+     
+  }
+  #heading{
+    height: 40px;
+  }
+  #tableDiv{
+    overflow: auto;
+    height: calc(100% - 40px);
+  }
+
+  #tableDiv > table {
+    width: 100%;
+    border-collapse: collapse; 
+    border: 1px solid rgb(51, 51, 51);
+  }
   
+  #tableDiv th, #tableDiv td {
+    width: 150px;
+    height: 30px;
+    padding: 8px; 
+    text-align: left; 
+    border: 1px solid #636363; 
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  
+  #tableDiv th {
+    background-color: #8b8b8b; 
+    border: 1px solid #636363; 
+    position: sticky; 
+    top: 0; 
+    z-index: 2; 
+  } */
+  #resultTable {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #heading {
+    padding: 10px;
+    background-color: #ebebeb;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  #heading>button{
+    width: 150px;
+    height: 25px;
+    border: none;
+    box-shadow: 0 0 5px rgb(37, 37, 37);
+  }
+  #tableDiv {
+    flex: 1;
+    overflow: auto;
+  }
+  
+  #tableDiv table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  #tableDiv th, #tableDiv td {
+    padding: 8px; 
+    text-align: left;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    height: 30px;
+    overflow: hidden;
+    max-height: 30px;
+  }
+  
+  #tableDiv th {
+    background-color: #f2f2f2;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
   /*------- Media query for screen size 1024 & 1440px ------*/
   @media screen and (max-width: 1440px) {
     .filterIcon {

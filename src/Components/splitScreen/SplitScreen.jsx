@@ -8,23 +8,26 @@ import { toast } from 'react-toastify';
 import LogoutModal from '../Custome/LogoutModal';
 import { Modal } from '@mui/material';
 import BlueSwitch from '../Custome/BlueSwitch';
+import * as XLSX from 'xlsx';
 import $ from 'jquery';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-dates/initialize';
 import moment from 'moment';
 import 'react-dates/lib/css/_datepicker.css';
-import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers, operators, commonFields, screenRelatedFields } from '../../Templates/Template';
-const [Popup, FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print,
+import { trackPopUpTemplate, Trackanalysisrenderer, TrackInsightes, BridgeInsightes, operationalLayers, operators, commonFields, screenRelatedFields, baseTrackRenderer, classifications } from '../../Templates/Template';
+const [Popup, FeatureLayer, MapView, Map, Zoom, ScaleBar, Expand, BasemapGallery, reactiveUtils, Legend, LayerList, typeRendererCreator, Graphic, IdentityManager, geometry, SpatialReference, FeatureTable, Fullscreen, Print, colorRendererCreator, histogram, ClassedColorSlider, Home, geometryEngine
 ] = await loadModules(["esri/widgets/Popup", "esri/layers/FeatureLayer", "esri/views/MapView", "esri/Map", "esri/widgets/Zoom", "esri/widgets/ScaleBar",
-    "esri/widgets/Expand", "esri/widgets/BasemapGallery", "esri/core/reactiveUtils", "esri/widgets/Legend", "esri/widgets/LayerList", "esri/smartMapping/renderers/type", "esri/Graphic", "esri/identity/IdentityManager", "esri/geometry", "esri/geometry/SpatialReference", "esri/widgets/FeatureTable", "esri/widgets/Fullscreen", "esri/widgets/Print", "esri/renderers/SimpleRenderer",
-    "esri/symbols/SimpleFillSymbol"], { css: true });
-const SplitScreen = ({ onLogout }) => {
+    "esri/widgets/Expand", "esri/widgets/BasemapGallery", "esri/core/reactiveUtils", "esri/widgets/Legend", "esri/widgets/LayerList", "esri/smartMapping/renderers/type", "esri/Graphic", "esri/identity/IdentityManager", "esri/geometry", "esri/geometry/SpatialReference", "esri/widgets/FeatureTable", "esri/widgets/Fullscreen", "esri/widgets/Print", "esri/smartMapping/renderers/color", "esri/smartMapping/statistics/histogram",
+    "esri/widgets/smartMapping/ClassedColorSlider", "esri/widgets/Home", "esri/geometry/geometryEngine"], { css: true });
+const SplitScreen = () => {
     const dispatch = useDispatch();
     let screenId;
     let selectionIdCount = 0;
     let candidate;
     let featureTable;
     let selectedSign = "";
+    let slider;
+    let newCommonFields;
     const API_BASE_URL = "https://mlinfomap.org/cris_datamgmt_api";
     const trackLayer = "https://mlinfomap.org/server/rest/services/Rail_Track/MapServer/0";
     const [startDate, setStartDate] = useState(null);
@@ -37,6 +40,10 @@ const SplitScreen = ({ onLogout }) => {
     const divisionDropdownRef = useRef(null);
     const sectionDropdownRef = useRef(null);
     const routeDropdownRef = useRef(null);
+    const effectRun = useRef(false);
+    const [tableHeading, setTableHeading] = useState([]);
+    const [tableData, setTableData] = useState([]);
+    const [styleCommonFields, setStyleCommonFields] = useState([]);
     const [trackInsighteScreenDropdown, setTrackInsighteScreenDropdown] = useState(false);
     const [trackInsighteLayerDropdown, setTrackInsighteLayerDropdown] = useState(false)
     const [trackInsighteFieldDropdown, setTrackInsighteFieldDropdown] = useState(false);
@@ -90,18 +97,35 @@ const SplitScreen = ({ onLogout }) => {
     const [KMFromSelected, setKMFromSelected] = useState("");
     const [KMToSelected, setKMToSelected] = useState("");
     const [fieldType, setFieldType] = useState("");
+    const [classBreakFieldType, setClassBreakFieldType] = useState("");
     const [trackInsightes, setTrackInsightes] = useState(TrackInsightes);
     const [bridgeInsightes, setBridgeInsightes] = useState(BridgeInsightes);
     const [operator, setOperator] = useState(operators);
     const [commonField, setCommonField] = useState(commonFields);
+    const [breaks, setBreaks] = useState(5)
+    const [classification, setClassification] = useState("");
+    const [classView, setClassView] = useState(null);
+    const [classificationRendererDropdown, setClassificationRendererDropdown] = useState(false);
+    const [toggleUniqueValue, setToggleUniqueValue] = useState(true);
+    const [uniqueValueActive, setUuniqueValueActive] = useState(true);
+    const [toggleClassBreak, setToggleClassBreak] = useState(false);
     const [screens, setScreens] = useState([
         { id: 0, label: "", value: "", url: "" }
     ]);
+    const indiaExtent = {
+        xmin: 68.1113787,
+        ymin: 6.5546079,
+        xmax: 97.395561,
+        ymax: 35.6745457,
+        spatialReference: {
+            wkid: 4326
+        }
+    };
     const prevScreensRef = useRef(screens);
     const openLogoutMOdal = () => {
         setIsOpenLogModal(true);
     }
-    const handleLogout =  () => {
+    const handleLogout = () => {
         dispatch(Remove_User());
         IdentityManager.destroyCredentials();
         window.location.reload();
@@ -111,11 +135,13 @@ const SplitScreen = ({ onLogout }) => {
         setEndDate(endDate);
     };
     const formatTitle = (field) => {
-        return field
-            .toLowerCase()
-            .split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
+        if (field) {
+            return field
+                .toLowerCase()
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
     };
     const calculateGrid = (count) => {
         let numRows, numCols;
@@ -151,6 +177,19 @@ const SplitScreen = ({ onLogout }) => {
         }
         return { numRows, numCols };
     };
+    useEffect(() => {
+        if (effectRun.current) return;
+        const loadInitialLayer = async () => {
+            var layer = new FeatureLayer({
+                url: trackLayer
+            });
+            await Promise.all([layer.load()]);
+            setLayerFromMap(prevLayer => [...prevLayer, { title: layer.title, layer: layer }]);
+            setLayerFromScreenStyle(prevLayer => [...prevLayer, { title: layer.title, layer: layer }]);
+        }
+        loadInitialLayer();
+        effectRun.current = true;
+    }, []);
     const { numRows, numCols } = calculateGrid(screens.length);
     //#region API fetching the Zone, Division, Route and Section
     useEffect(() => {
@@ -396,22 +435,42 @@ const SplitScreen = ({ onLogout }) => {
             });
             const initialView = new MapView({
                 map: map,
-                center: [77.21991492557393, 28.632708300410687],
-                zoom: 8,
+                zoom: 4,
+                // extent: indiaExtent,
+                constraints: {
+                    geometry: indiaExtent,
+                    minZoom: 4,
+                    snapToZoom: false,
+                    rotationEnabled: false,
+
+                },
+                popup: new Popup({
+                    dockEnabled: true,
+                    dockOptions: {
+                        buttonEnabled: false,
+                        breakpoint: false,
+                        position: 'top-right'
+                    },
+                    visibleElements: {
+                        closeButton: false
+                    }
+                }),
                 container: `viewDiv-0`,
                 ui: {
                     components: ["attribution"]
-                }
+                },
             });
             var trackfeaturelayer = new FeatureLayer({
                 url: trackLayer,
-                renderer: Trackanalysisrenderer,
+                renderer: baseTrackRenderer,
                 title: "Base Track",
                 popupTemplate: trackPopUpTemplate
             });
-
             await Promise.all([trackfeaturelayer.load()]);
             map.add(trackfeaturelayer);
+            const home = new Home({
+                view: initialView,
+            })
             const zoom = new Zoom({
                 view: initialView
             });
@@ -459,70 +518,6 @@ const SplitScreen = ({ onLogout }) => {
                 content: print,
                 expandTooltip: "Print Widget",
             });
-            const createFeatureTable = () => {
-                console.log('Feature Table ', featureTable);
-                if (featureTable == null) {
-                    featureTable = new FeatureTable({
-                        view: initialView,
-                        layer: trackfeaturelayer,
-                        visibleElements: {
-                            menuItems: {
-                                clearSelection: true,
-                                refreshData: true,
-                                toggleColumns: true,
-                                selectedRecordsShowAllToggle: true,
-                                selectedRecordsShowSelectedToggle: true,
-                                zoomToSelection: true
-                            }
-                        },
-                        container: document.getElementById("tableDiv-0")
-                    });
-
-                    reactiveUtils.when(
-                        () => initialView.stationary,
-                        () => {
-                            featureTable.filterGeometry = initialView.extent;
-                        },
-                        { initial: true }
-                    );
-
-                    initialView.on("immediate-click", async (event) => {
-                        const response = await initialView.hitTest(event);
-                        candidate = response.results.find((result) => {
-                            return result.graphic && result.graphic.layer && result.graphic.layer === trackfeaturelayer;
-                        });
-                        if (candidate) {
-                            const objectId = candidate.graphic.getObjectId();
-                            if (featureTable.highlightIds.includes(objectId)) {
-                                featureTable.highlightIds.remove(objectId);
-                            } else {
-                                featureTable.highlightIds.add(objectId);
-                            }
-                        }
-                    });
-
-                    reactiveUtils.watch(
-                        () => featureTable.highlightIds.length,
-                        (highlightIdsCount) => {
-                            featureTable.viewModel.activeFilters.forEach((filter) => {
-                                if (filter.type === "selection") {
-                                    selectionIdCount = filter.objectIds.length;
-                                    if (selectionIdCount !== highlightIdsCount) {
-                                        featureTable.filterBySelection();
-                                    }
-                                }
-                            });
-                        }
-                    );
-                    var container = document.getElementById(`layerContainer-0`);
-                    container.style.display = 'block';
-                }
-                else {
-                    var container = document.getElementById('layerContainer-0');
-                    container.style.display = 'block';
-                }
-
-            }
             // // Function to destroy Feature Table
             function destroyFeatureTable() {
                 var container = document.getElementById('layerContainer-0');
@@ -533,7 +528,7 @@ const SplitScreen = ({ onLogout }) => {
             }
             expandTableWidget.watch(["expanded", "collapsed"], (expanded, collapsed) => {
                 if (expanded) {
-                    createFeatureTable();
+                    createFeatureTable(0, initialView, trackfeaturelayer);
                 } else if (collapsed) {
                     destroyFeatureTable();
                 }
@@ -570,16 +565,29 @@ const SplitScreen = ({ onLogout }) => {
                 if (expandTableWidget.expanded) {
                     closeOtherExpands(expandTableWidget)
                 }
-            })
+            });
+            window.addEventListener('click', (event) => {
+                const isOutsideClick = ![expandLegend, expandLayerList, bgExpandPrint, bgExpand, expandTableWidget].some(expand => {
+                    return expand && expand.container && expand.container.contains(event.target);
+                });
+
+                if (isOutsideClick) {
+                    closeOtherExpands(null);
+                }
+            });
+            initialView.ui.add(home, "top-right");
             initialView.ui.add(expandLayerList, "top-right");
             initialView.ui.add(expandLegend, "top-right");
-            initialView.ui.add(fullscreen, "top-right");
+            initialView.ui.add(fullscreen, "top-left");
+
             initialView.ui.add(expandTableWidget, "top-left");
             initialView.ui.add(bgExpand, "top-left");
             initialView.ui.add(zoom, "bottom-right");
             initialView.ui.add(scaleBar, "bottom-left");
-            initialView.extent = trackfeaturelayer.fullExtent;
+            initialView.extent = indiaExtent;
             await initialView.when();
+
+
         };
         loadInitialMap();
         return () => {
@@ -641,13 +649,240 @@ const SplitScreen = ({ onLogout }) => {
             teardownWatchers();
         };
     }, [active, mapObject, isSyncEnabled])
+    // useEffect(() => {
+    //     const loadMapForNewScreens = async () => {
+    //         const clusterConfig = {
+    //             type: "cluster",
+    //             clusterRadius: "100px",
+    //             // {cluster_count} is an aggregate field containing
+    //             // the number of features comprised by the cluster
+    //             popupTemplate: {
+    //                 title: "Cluster summary",
+    //                 content: "This cluster represents {cluster_count} Weld Fracture.",
+    //                 fieldInfos: [{
+    //                     fieldName: "cluster_count",
+    //                     format: {
+    //                         places: 0,
+    //                         digitSeparator: true
+    //                     }
+    //                 }]
+    //             },
+    //             clusterMinSize: "18px",
+    //             clusterMaxSize: "36px",
+    //             labelingInfo: [{
+    //                 deconflictionStrategy: "none",
+    //                 labelExpressionInfo: {
+    //                     expression: `Text($feature.cluster_count, '#,###')`
+    //                 },
+    //                 symbol: {
+    //                     type: "text",
+    //                     color: "white",
+    //                     font: {
+    //                         weight: "bold",
+    //                         family: "Noto Sans",
+    //                         size: "12px"
+    //                     }
+    //                 },
+    //                 labelPlacement: "center-center",
+    //             }]
+    //         };
+    //         screens.forEach(async (screen) => {
+    //             if (!prevScreensRef.current.some(prevScreen => prevScreen.id === screen.id)) {
+    //                 const map = new Map({
+    //                     basemap: "gray-vector"
+    //                 });
+    //                 const newView = new MapView({
+    //                     map: map,
+    //                     center: [77.21991492557393, 28.632708300410687],
+    //                     zoom: 8,
+    //                     popup: new Popup({
+    //                         dockEnabled: true,
+    //                         dockOptions: {
+    //                             // Disables the dock button from the popup
+    //                             buttonEnabled: false,
+    //                             // Ignore the default sizes that trigger responsive docking
+    //                             breakpoint: false,
+    //                             position: 'top-right'
+    //                         },
+    //                         visibleElements: {
+    //                             closeButton: false
+    //                         }
+    //                     }),
+    //                     container: `viewDiv-${screen.id}`,
+    //                     ui: {
+    //                         components: ["attribution"]
+    //                     },
+    //                 });
+
+    //                 var trackfeaturelayer = new FeatureLayer({
+    //                     url: trackLayer,
+    //                     renderer: Trackanalysisrenderer,
+    //                     title: "Base Track",
+    //                     popupTemplate: trackPopUpTemplate
+    //                 });
+    //                 await Promise.all([trackfeaturelayer.load()]);
+    //                 var featurelayer = new FeatureLayer({
+    //                     url: screen.url,
+    //                     title: screen.title,
+    //                     renderer: screen.renderer,
+    //                     popupTemplate: screen.popupTemplate,
+    //                 });
+    //                 esriPopUpUpdateSizes();
+    //                 if (!screen.renderer) {
+    //                     generateRenderer(newView, featurelayer, screen.field)
+    //                 }
+    //                 if (screen.id === 1)
+    //                     featurelayer.featureReduction = clusterConfig;
+    //                 if (screen.id === 6)
+    //                     featurelayer.featureReduction = clusterConfig;
+    //                 await Promise.all([featurelayer.load()]);
+    //                 map.addMany([trackfeaturelayer, featurelayer,]);
+    //                 const home = new Home({
+    //                     view: newView,
+    //                 });
+    //                 const zoom = new Zoom({
+    //                     view: newView
+    //                 });
+    //                 const scaleBar = new ScaleBar({
+    //                     view: newView
+    //                 });
+    //                 const legendData = new Legend({
+    //                     view: newView
+    //                 });
+    //                 const expandLegend = new Expand({
+    //                     view: newView,
+    //                     content: legendData,
+    //                     expandTooltip: "Legend",
+    //                 });
+    //                 const basemapGallery = new BasemapGallery({
+    //                     view: newView,
+    //                     container: document.createElement("div")
+    //                 });
+    //                 const bgExpand = new Expand({
+    //                     view: newView,
+    //                     content: basemapGallery,
+    //                     expandTooltip: "BaseMap Gallery",
+    //                 });
+    //                 const layerList = new LayerList({
+    //                     view: newView
+    //                 });
+    //                 const expandLayerList = new Expand({
+    //                     view: newView,
+    //                     content: layerList,
+    //                     expandTooltip: "Layer List",
+    //                 });
+    //                 const expandTableWidget = new Expand({
+    //                     view: newView,
+    //                     content: document.createElement("div"),
+    //                     expandIconClass: "esri-icon-table",
+    //                     expandTooltip: "Feature Table",
+    //                     collapseTooltip: "Collapse Feature Table"
+    //                 });
+    //                 const fullscreen = new Fullscreen({
+    //                     view: newView
+    //                 })
+    //                 const print = new Print({
+    //                     view: newView,
+    //                     printServiceUrl: "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task"
+    //                 });
+    //                 const bgExpandPrint = new Expand({
+    //                     view: newView,
+    //                     content: print,
+    //                     expandTooltip: "Print Widget",
+    //                 });
+
+    //                 function destroyFeatureTable() {
+    //                     var container = document.getElementById(`layerContainer-${screen.id}`);
+    //                     container.style.display = 'none';
+    //                 }
+    //                 expandTableWidget.watch(["expanded", "collapsed"], (expanded, collapsed) => {
+    //                     if (expanded) {
+    //                         createFeatureTable(screen.id,newView,featurelayer);
+    //                     } else if (collapsed) {
+    //                         destroyFeatureTable();
+    //                     }
+    //                 });
+    //                 reactiveUtils.watch(
+    //                     () => basemapGallery.activeBasemap,
+    //                     () => {
+    //                         const mobileSize = newView.heightBreakpoint === "xsmall" || newView.widthBreakpoint === "xsmall";
+
+    //                         if (mobileSize) {
+    //                             bgExpand.collapse();
+    //                         }
+    //                     }
+    //                 );
+
+    //                 // Function to close all Expand widgets except the provided one
+    //                 function closeOtherExpands(exceptExpand) {
+    //                     [expandLegend, expandLayerList, bgExpandPrint, bgExpand].forEach(expand => {
+    //                         if (expand !== exceptExpand) {
+    //                             expand.collapse();
+    //                         }
+    //                     });
+    //                 }
+    //                 expandLegend.watch('expanded', () => {
+    //                     if (expandLegend.expanded) {
+    //                         closeOtherExpands(expandLegend);
+    //                     }
+    //                 });
+
+    //                 expandLayerList.watch('expanded', () => {
+    //                     if (expandLayerList.expanded) {
+    //                         closeOtherExpands(expandLayerList);
+    //                     }
+    //                 });
+
+    //                 bgExpandPrint.watch('expanded', () => {
+    //                     if (bgExpandPrint.expanded) {
+    //                         closeOtherExpands(bgExpandPrint);
+    //                     }
+    //                 });
+    //                 bgExpand.watch('expanded', () => {
+    //                     if (bgExpand.expanded) {
+    //                         closeOtherExpands(bgExpand)
+    //                     }
+    //                 })
+    //                 expandTableWidget.watch('expanded', () => {
+    //                     if (expandTableWidget.expanded) {
+    //                         closeOtherExpands(expandTableWidget)
+    //                     }
+    //                 })
+    //                 window.addEventListener('click', (event) => {
+    //                     const isOutsideClick = ![expandLegend, expandLayerList, bgExpandPrint, bgExpand, expandTableWidget].some(expand => {
+    //                         return expand.container.contains(event.target);
+    //                     });
+
+    //                     if (isOutsideClick) {
+    //                         closeOtherExpands(null);
+    //                     }
+    //                 });
+    //                 newView.ui.add(expandLayerList, "top-right")
+    //                 newView.ui.add(expandLegend, "top-right");
+    //                 newView.ui.add(home, "top-left");
+    //                 newView.ui.add(fullscreen, "top-left");
+    //                 newView.ui.add(bgExpandPrint, "top-right");
+    //                 newView.ui.add(expandTableWidget, "top-left");
+    //                 newView.ui.add(bgExpand, "top-left");
+    //                 newView.ui.add(zoom, "bottom-right");
+    //                 newView.ui.add(scaleBar, "bottom-left");
+    //                 newView.extent = featurelayer.fullExtent;
+    //                 await newView.when();
+    //                 let id = screen.id;
+    //                 let title = screen.title;
+    //                 let newMapObj = { id, title, newView, checked: true };
+    //                 setMapObject(prevMapObj => [...prevMapObj, newMapObj]);
+    //             }
+    //         });
+    //         prevScreensRef.current = screens;
+    //     };
+    //     loadMapForNewScreens();
+    // }, [screens, mapObject]);
     useEffect(() => {
         const loadMapForNewScreens = async () => {
             const clusterConfig = {
                 type: "cluster",
                 clusterRadius: "100px",
-                // {cluster_count} is an aggregate field containing
-                // the number of features comprised by the cluster
                 popupTemplate: {
                     title: "Cluster summary",
                     content: "This cluster represents {cluster_count} Weld Fracture.",
@@ -678,21 +913,25 @@ const SplitScreen = ({ onLogout }) => {
                     labelPlacement: "center-center",
                 }]
             };
+
             screens.forEach(async (screen) => {
                 if (!prevScreensRef.current.some(prevScreen => prevScreen.id === screen.id)) {
                     const map = new Map({
                         basemap: "gray-vector"
                     });
+
                     const newView = new MapView({
                         map: map,
-                        center: [77.21991492557393, 28.632708300410687],
-                        zoom: 8,
+                        // center: [77.21991492557393, 28.632708300410687],
+                        zoom: 4,
+                        constraints: {
+                            minZoom: 3,
+                            maxZoom: 18
+                        },
                         popup: new Popup({
                             dockEnabled: true,
                             dockOptions: {
-                                // Disables the dock button from the popup
                                 buttonEnabled: false,
-                                // Ignore the default sizes that trigger responsive docking
                                 breakpoint: false,
                                 position: 'top-right'
                             },
@@ -703,8 +942,10 @@ const SplitScreen = ({ onLogout }) => {
                         container: `viewDiv-${screen.id}`,
                         ui: {
                             components: ["attribution"]
-                        }
+                        },
                     });
+
+
                     var trackfeaturelayer = new FeatureLayer({
                         url: trackLayer,
                         renderer: Trackanalysisrenderer,
@@ -712,53 +953,66 @@ const SplitScreen = ({ onLogout }) => {
                         popupTemplate: trackPopUpTemplate
                     });
                     await Promise.all([trackfeaturelayer.load()]);
+
                     var featurelayer = new FeatureLayer({
                         url: screen.url,
                         title: screen.title,
                         renderer: screen.renderer,
                         popupTemplate: screen.popupTemplate,
                     });
+
                     esriPopUpUpdateSizes();
+
                     if (!screen.renderer) {
                         generateRenderer(newView, featurelayer, screen.field)
                     }
-                    if (screen.id === 1)
+                    if (screen.id === 1 || screen.id === 6) {
                         featurelayer.featureReduction = clusterConfig;
-                    if (screen.id === 6)
-                        featurelayer.featureReduction = clusterConfig;
+                    }
                     await Promise.all([featurelayer.load()]);
-                    map.addMany([trackfeaturelayer, featurelayer,]);
+                    map.addMany([trackfeaturelayer, featurelayer]);
+
+                    const home = new Home({
+                        view: newView,
+                    });
                     const zoom = new Zoom({
                         view: newView
                     });
                     const scaleBar = new ScaleBar({
                         view: newView
                     });
+
                     const legendData = new Legend({
                         view: newView
                     });
+
                     const expandLegend = new Expand({
                         view: newView,
                         content: legendData,
                         expandTooltip: "Legend",
                     });
+
                     const basemapGallery = new BasemapGallery({
                         view: newView,
                         container: document.createElement("div")
                     });
+
                     const bgExpand = new Expand({
                         view: newView,
                         content: basemapGallery,
                         expandTooltip: "BaseMap Gallery",
                     });
+
                     const layerList = new LayerList({
                         view: newView
                     });
+
                     const expandLayerList = new Expand({
                         view: newView,
                         content: layerList,
                         expandTooltip: "Layer List",
                     });
+
                     const expandTableWidget = new Expand({
                         view: newView,
                         content: document.createElement("div"),
@@ -766,93 +1020,35 @@ const SplitScreen = ({ onLogout }) => {
                         expandTooltip: "Feature Table",
                         collapseTooltip: "Collapse Feature Table"
                     });
+
                     const fullscreen = new Fullscreen({
                         view: newView
-                    })
+                    });
+
                     const print = new Print({
                         view: newView,
                         printServiceUrl: "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task"
                     });
+
                     const bgExpandPrint = new Expand({
                         view: newView,
                         content: print,
                         expandTooltip: "Print Widget",
                     });
-                    const createFeatureTable = () => {
-                        console.log('Feature Table ', featureTable);
-                        if (featureTable == null) {
-                            featureTable = new FeatureTable({
-                                view: newView,
-                                layer: featurelayer,
-                                visibleElements: {
-                                    menuItems: {
-                                        clearSelection: true,
-                                        refreshData: true,
-                                        toggleColumns: true,
-                                        selectedRecordsShowAllToggle: true,
-                                        selectedRecordsShowSelectedToggle: true,
-                                        zoomToSelection: true
-                                    }
-                                },
-                                container: document.getElementById(`tableDiv-${screen.id}`)
-                            });
 
-                            reactiveUtils.when(
-                                () => newView.stationary,
-                                () => {
-                                    featureTable.filterGeometry = newView.extent;
-                                },
-                                { initial: true }
-                            );
-
-                            newView.on("immediate-click", async (event) => {
-                                const response = await newView.hitTest(event);
-                                candidate = response.results.find((result) => {
-                                    return result.graphic && result.graphic.layer && result.graphic.layer === featurelayer;
-                                });
-                                if (candidate) {
-                                    const objectId = candidate.graphic.getObjectId();
-                                    if (featureTable.highlightIds.includes(objectId)) {
-                                        featureTable.highlightIds.remove(objectId);
-                                    } else {
-                                        featureTable.highlightIds.add(objectId);
-                                    }
-                                }
-                            });
-
-                            reactiveUtils.watch(
-                                () => featureTable.highlightIds.length,
-                                (highlightIdsCount) => {
-                                    featureTable.viewModel.activeFilters.forEach((filter) => {
-                                        if (filter.type === "selection") {
-                                            selectionIdCount = filter.objectIds.length;
-                                            if (selectionIdCount !== highlightIdsCount) {
-                                                featureTable.filterBySelection();
-                                            }
-                                        }
-                                    });
-                                }
-                            );
-                            var container = document.getElementById(`layerContainer-${screen.id}`);
-                            container.style.display = 'block';
-                        }
-                        else {
-                            var container = document.getElementById(`layerContainer-${screen.id}`);
-                            container.style.display = 'block';
-                        }
-
-                    }
                     function destroyFeatureTable() {
                         var container = document.getElementById(`layerContainer-${screen.id}`);
                         container.style.display = 'none';
                     }
+
                     expandTableWidget.watch(["expanded", "collapsed"], (expanded, collapsed) => {
                         if (expanded) {
-                            createFeatureTable();
+                            createFeatureTable(screen.id, newView, featurelayer);
                         } else if (collapsed) {
                             destroyFeatureTable();
                         }
                     });
+
                     reactiveUtils.watch(
                         () => basemapGallery.activeBasemap,
                         () => {
@@ -864,14 +1060,14 @@ const SplitScreen = ({ onLogout }) => {
                         }
                     );
 
-                    // Function to close all Expand widgets except the provided one
                     function closeOtherExpands(exceptExpand) {
-                        [expandLegend, expandLayerList, bgExpandPrint, bgExpand, expandTableWidget].forEach(expand => {
+                        [expandLegend, expandLayerList, bgExpandPrint, bgExpand].forEach(expand => {
                             if (expand !== exceptExpand) {
                                 expand.collapse();
                             }
                         });
                     }
+
                     expandLegend.watch('expanded', () => {
                         if (expandLegend.expanded) {
                             closeOtherExpands(expandLegend);
@@ -889,16 +1085,19 @@ const SplitScreen = ({ onLogout }) => {
                             closeOtherExpands(bgExpandPrint);
                         }
                     });
+
                     bgExpand.watch('expanded', () => {
                         if (bgExpand.expanded) {
                             closeOtherExpands(bgExpand)
                         }
-                    })
+                    });
+
                     expandTableWidget.watch('expanded', () => {
                         if (expandTableWidget.expanded) {
                             closeOtherExpands(expandTableWidget)
                         }
-                    })
+                    });
+
                     window.addEventListener('click', (event) => {
                         const isOutsideClick = ![expandLegend, expandLayerList, bgExpandPrint, bgExpand, expandTableWidget].some(expand => {
                             return expand.container.contains(event.target);
@@ -908,16 +1107,20 @@ const SplitScreen = ({ onLogout }) => {
                             closeOtherExpands(null);
                         }
                     });
-                    newView.extent = featurelayer.fullExtent;
-                    newView.ui.add(expandLayerList, "top-right")
+
+                    newView.ui.add(expandLayerList, "top-right");
                     newView.ui.add(expandLegend, "top-right");
+                    newView.ui.add(home, "top-left");
                     newView.ui.add(fullscreen, "top-left");
                     newView.ui.add(bgExpandPrint, "top-right");
                     newView.ui.add(expandTableWidget, "top-left");
                     newView.ui.add(bgExpand, "top-left");
                     newView.ui.add(zoom, "bottom-right");
                     newView.ui.add(scaleBar, "bottom-left");
+                    newView.extent = featurelayer.fullExtent;
+
                     await newView.when();
+
                     let id = screen.id;
                     let title = screen.title;
                     let newMapObj = { id, title, newView, checked: true };
@@ -926,8 +1129,72 @@ const SplitScreen = ({ onLogout }) => {
             });
             prevScreensRef.current = screens;
         };
+
         loadMapForNewScreens();
     }, [screens, mapObject]);
+    const createFeatureTable = (id, view, layer) => {
+        console.log('Feature Table ', featureTable);
+        if (featureTable == null) {
+            featureTable = new FeatureTable({
+                view: view,
+                layer: layer,
+                visibleElements: {
+                    menuItems: {
+                        clearSelection: true,
+                        refreshData: true,
+                        toggleColumns: true,
+                        selectedRecordsShowAllToggle: true,
+                        selectedRecordsShowSelectedToggle: true,
+                        zoomToSelection: true
+                    }
+                },
+                container: document.getElementById(`tableDiv-${id}`)
+            });
+
+            reactiveUtils.when(
+                () => view.stationary,
+                () => {
+                    featureTable.filterGeometry = view.extent;
+                },
+                { initial: true }
+            );
+
+            view.on("immediate-click", async (event) => {
+                const response = await view.hitTest(event);
+                candidate = response.results.find((result) => {
+                    return result.graphic && result.graphic.layer && result.graphic.layer === layer;
+                });
+                if (candidate) {
+                    const objectId = candidate.graphic.getObjectId();
+                    if (featureTable.highlightIds.includes(objectId)) {
+                        featureTable.highlightIds.remove(objectId);
+                    } else {
+                        featureTable.highlightIds.add(objectId);
+                    }
+                }
+            });
+
+            reactiveUtils.watch(
+                () => featureTable.highlightIds.length,
+                (highlightIdsCount) => {
+                    featureTable.viewModel.activeFilters.forEach((filter) => {
+                        if (filter.type === "selection") {
+                            selectionIdCount = filter.objectIds.length;
+                            if (selectionIdCount !== highlightIdsCount) {
+                                featureTable.filterBySelection();
+                            }
+                        }
+                    });
+                }
+            );
+            var container = document.getElementById(`layerContainer-${id}`);
+            container.style.display = 'block';
+        }
+        else {
+            var container = document.getElementById(`layerContainer-${id}`);
+            container.style.display = 'block';
+        }
+    }
     //#endregion
     //#region Filter Zone Division Route Section KM_Post Date 
     // Function to get the financial year (yyyy-yy) for a given date
@@ -995,7 +1262,6 @@ const SplitScreen = ({ onLogout }) => {
             kmpostQuery = " km_from >  " + KMFromSelected + " and km_to < " + KMToSelected;
         }
         for (const screen of mapObject) {
-            debugger
             let filterLayer = screen.newView.map.allLayers.items.filter(ly => operationalLayers.map(olyr => olyr.name).includes(ly.title))
             console.log(finalQuery);
             if (filterLayer.length > 0) {
@@ -1005,6 +1271,43 @@ const SplitScreen = ({ onLogout }) => {
                     finalQuery = "1=1";
                 // Update definitionExpression in each item of mapObject
                 if (filterLayer.length > 0) filterLayer[0].definitionExpression = finalQuery;
+                const query = filterLayer[0].createQuery();
+                query.where = finalQuery;
+
+                filterLayer[0].queryFeatures(query)
+                    .then((results) => {
+                        // Store the features in a variable
+                        let features = results.features;
+                        let type = features[0].geometry.type;
+                        console.log(features); // Output the features
+
+                        // Get the extent of the features
+                        let featureExtent;
+                        if (features.length > 0) {
+                            if (type === "point") {
+                                featureExtent = features.filter(f => f.geometry.x !== 0).reduce((accExtent, feature) => {
+                                    let _ext = new geometry.Extent(feature.geometry.x, feature.geometry.y, feature.geometry.x, feature.geometry.y, new SpatialReference({ wkid: 4326 }));
+                                    return accExtent ? accExtent.union(_ext) : _ext;
+                                }, null);
+                            } else {
+                                featureExtent = features.filter(f => f.geometry.paths[0].length > 0).reduce((extent, feature) => {
+                                    return extent ? extent.union(feature.geometry.extent) : feature.geometry.extent;
+                                }, null);
+                            }
+
+                            // Set the view extent to the feature extent
+                            if (featureExtent) {
+                                screen.newView.goTo(featureExtent.expand(1.25)); // Optional: expand extent by 25%
+                            }
+
+                        }
+
+                        // You can now use the features as needed
+                        // Example: Store features in state or perform further operations
+                    })
+                    .catch((error) => {
+                        console.error("Error querying features: ", error);
+                    });
             }
         }
     }, [mapObject, sectionNames, routeNames, railwayNames, divisionNames, KMFromSelected, KMToSelected, startDate, endDate]);
@@ -1028,7 +1331,7 @@ const SplitScreen = ({ onLogout }) => {
         for (const screen of mapObject) {
             let filterLayer = screen.newView.map.allLayers.items.filter(ly => operationalLayers.map(olyr => olyr.name).includes(ly.title))
             if (filterLayer.length > 0) filterLayer[0].definitionExpression = "1=1";
-            screen.newView.zoom = 8;
+            screen.newView.zoom = 3;
         }
     };
     const handleKMFromChange = (e) => {
@@ -1175,7 +1478,7 @@ const SplitScreen = ({ onLogout }) => {
         setTrackInsighteFieldDropdown(false);
         setTrackInsighteSignDropdown(false);
         setTrackInsighteValueDropdown(false);
-    }
+    };
     const updateCommonField = (layerTitle) => {
         const matchedField = screenRelatedFields.find(srf => srf.label === layerTitle);
         if (matchedField) {
@@ -1192,7 +1495,6 @@ const SplitScreen = ({ onLogout }) => {
         if (!selectedTrackScreen) return;
         setSelectedTrackInsightesScreen(selectedTrackScreen);
         let filteredScreen = screens.filter((screen) => screen.label === selectedTrackScreen);
-        setLayerFromMap([]);
         setSelectedLayerFromMap("");
         setSelectedLayerField("");
         setSignSelected("");
@@ -1200,11 +1502,15 @@ const SplitScreen = ({ onLogout }) => {
         const layer = new FeatureLayer({
             url: filteredScreen[0].url
         });
-        setSelectedLayer(layer)
         console.log(`Title of layer : ${layer.title}`)
-        let newCommonFields = updateCommonField(layer.title);
-        setCommonField(newCommonFields);
-        setLayerFromMap(prevLayer => [...prevLayer, layer.title]);
+        setLayerFromMap(prevLayer => {
+            const exists = prevLayer.some(item => item.title === layer.title);
+            if (!exists) {
+                return [...prevLayer, { title: layer.title, layer: layer }];
+            } else {
+                return prevLayer;
+            }
+        });
         setTrackInsighteScreenDropdown(false)
     };
     const handleLayerSelectDropdown = () => {
@@ -1217,13 +1523,13 @@ const SplitScreen = ({ onLogout }) => {
     const handleLayerSelectFromMap = async (layer) => {
         let selLayer = layer;
         setSelectedLayerFromMap(selLayer);
-        // setFieldsFromLayer([]);
-        await Promise.all([selectedLayer.load()]);
-        // if (selectedLayer) {
-        //     selectedLayer.fields.forEach((field) => {
-        //         setFieldsFromLayer(prevFieldName => [...prevFieldName, field.name]);
-        //     });
-        // }
+        layerFromMap.forEach((lfm) => {
+            if (lfm.title === layer) {
+                setSelectedLayer(lfm.layer);
+            }
+        })
+        let newCommonFields = updateCommonField(layer);
+        setCommonField(newCommonFields);
         setTrackInsighteLayerDropdown(false)
     };
     const handleFieldSelectDropdown = () => {
@@ -1234,7 +1540,6 @@ const SplitScreen = ({ onLogout }) => {
         setTrackInsighteValueDropdown(false);
     };
     const handleSelectFieldFromLayer = async (field) => {
-        debugger
         let selectedField = field;
         setSelectedLayerField(selectedField);
         let filterField = commonField.filter(c => c.value === field);
@@ -1242,13 +1547,16 @@ const SplitScreen = ({ onLogout }) => {
         await Promise.all([selectedLayer.load()]);
         if (selectedLayer) {
             let query = selectedLayer.createQuery();
-            query.where = "loc_error='NO ERROR'"
+            if (selectedLayerFromMap !== "Rail Track") {
+                query.where = "loc_error='NO ERROR'"
+            }
             query.outFields = [selectedField];
             try {
                 setValueFromLayer([]);
                 setSelectedLayerValue("");
                 const result = await selectedLayer.queryFeatures(query);
-                let type = result.fields[1].type;
+                console.log(result);
+                let type = result.fields[0].type;
                 if (type === "string") {
                     let filteredOperator = operator.filter(o => o.label === "equal to");
                     setOperator(filteredOperator);
@@ -1385,13 +1693,39 @@ const SplitScreen = ({ onLogout }) => {
                 if (graphicsExtent) {
                     view.goTo(graphicsExtent);
                 }
+                // Display results in a table
+                displayResultsInTable(result.features);
+
             } else {
                 toast("No Features Found");
             }
-
         } catch (error) {
             console.log(`Error while querrying features : ${error}`);
         }
+    };
+    const displayResultsInTable = (features) => {
+        if (features.length === 0) {
+            console.warn("No features to display.");
+            return;
+        }
+        commonField.map((field) => {
+
+        })
+        const headers = Object.keys(features[0].attributes);
+        console.log('Setting headers:', headers); // Debugging statement
+        setTableHeading(headers);
+
+        const rowDataArray = features.map(feature => {
+            return headers.map(header => feature.attributes[header]);
+        });
+        console.log('Setting row data:', rowDataArray); // Debugging statement
+        setTableData(rowDataArray);
+    };
+    const exportToExcel = () => {
+        const ws = XLSX.utils.table_to_sheet(document.getElementById('tableDiv'));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'sheet1');
+        XLSX.writeFile(wb, 'table_data.xlsx');
     }
     const handleResetQueryData = () => {
         setSelectedTrackInsightesScreen("");
@@ -1400,13 +1734,12 @@ const SplitScreen = ({ onLogout }) => {
         setSignSelected("");
         setSelectedLayerValue("");
         setSelectedLayer(null);
-        setLayerFromMap([]);
-        // setFieldsFromLayer([]);
+        setLayerFromMap(prevLayer => [...prevLayer.filter(l => l.title === "Rail Track")]);
         setDisplayField("");
         setValueFromLayer([]);
         mapObject.forEach((screen) => {
             screen.newView.graphics.removeAll();
-            screen.newView.zoom = 8;
+            screen.newView.zoom = 3;
         });
 
     };
@@ -1424,9 +1757,15 @@ const SplitScreen = ({ onLogout }) => {
         setTrackScreenRendererDropdown(!trackScreenRendererDropdown);
         setTrackLayerRendererDropdown(false);
         setTrackFieldRendererDropdown(false);
+        setClassificationRendererDropdown(false);
+    };
+    const handleToggleUniqueValue = () => {
+        setToggleUniqueValue(true);
+        setToggleClassBreak(false);
+        setUuniqueValueActive(true)
     }
     const handleSelectedScreenForStyle = async (title) => {
-        debugger
+
         let selectedStyleScreen = title;
         if (!selectedStyleScreen) return;
         console.log(`This is the selected screen : ${selectedStyleScreen}`)
@@ -1434,52 +1773,121 @@ const SplitScreen = ({ onLogout }) => {
         let filteredScreen = screens.filter((screen) => screen.label === selectedStyleScreen);
         let id = (filteredScreen[0].id);
         setViewId(id);
-        setLayerFromScreenStyle([]);
         setSelectedLayerForStyle("");
         setSelectedFieldForStyle("");
         const layer = new FeatureLayer({
             url: filteredScreen[0].url
         });
-        let layerTitle = layer.title;
+        // let layerTitle = layer.title;
         await Promise.all([layer.load()]);
         if (selectedStyleLayer && map?.layers?.includes(selectedStyleLayer)) {
             map.remove(selectedStyleLayer);
         }
-        setSelectedStyleLayer(layer)
-        let newCommonFields = updateCommonField(layerTitle);
-        setFieldsFromLayerStyle(newCommonFields);
-        setLayerFromScreenStyle([layerTitle]);
+        // setSelectedStyleLayer(layer)
+        // let newCommonFields = updateCommonField(layerTitle);
+        // setFieldsFromLayerStyle(newCommonFields);
+        setLayerFromScreenStyle(prevLayer => [...prevLayer.filter(l => l.title === "Rail Track"), { title: layer.title, layer: layer }]);
         setTrackScreenRendererDropdown(false);
     };
     const handleRendererLayerDropdown = () => {
         setTrackLayerRendererDropdown(!trackLayerRendererDropdown);
         setTrackFieldRendererDropdown(false);
         setTrackScreenRendererDropdown(false);
+        setClassificationRendererDropdown(false);
     }
     const handleSelectedLayerForStyle = async (layer) => {
+
         let selectedLayer = layer;
         setSelectedLayerForStyle(selectedLayer);
         setSelectedFieldForStyle("");
+        layerFromScreenStyle.forEach((lfsm) => {
+            if (lfsm.title === layer) {
+                setSelectedStyleLayer(lfsm.layer);
+            }
+        })
+        newCommonFields = updateCommonField(layer);
+        setStyleCommonFields(newCommonFields);
+        setFieldsFromLayerStyle(newCommonFields);
         setTrackLayerRendererDropdown(false)
     };
+    useEffect(() => {
+        if (toggleClassBreak === true) {
+            newCommonFields = fieldsFromLayerStyle.filter(f => f.type === "integer" || f.type === "double");
+            setFieldsFromLayerStyle(newCommonFields);
+        } else {
+            setFieldsFromLayerStyle(styleCommonFields);
+        }
+
+    }, [toggleClassBreak])
     const handleFieldRendererDropdown = () => {
         setTrackFieldRendererDropdown(!trackFieldRendererDropdown);
         setTrackScreenRendererDropdown(false);
         setTrackLayerRendererDropdown(false);
+        setClassificationRendererDropdown(false);
     }
     const handleSelectFieldForStyle = async (field) => {
-        debugger
+
         let selectedField = field;
+        console.log(selectedField)
         setSelectedFieldForStyle(selectedField);
+        let query = selectedStyleLayer.createQuery();
+        query.outFields = [selectedField];
+        const result = await selectedStyleLayer.queryFeatures(query);
+        let type = result.fields[1].type;
+        setClassBreakFieldType(type);
+        const uniqueValues = new Set();
+        result.features.forEach((feature) => {
+            const attributeValue = feature.attributes[selectedField];
+            if (attributeValue) {
+                uniqueValues.add(attributeValue);
+            }
+        });
         let filterField = fieldsFromLayerStyle.filter(c => c.value === field);
+        let fieldLabel = filterField[0].label;
         setFieldLabelForStyle(filterField[0].label);
         const filteredMapView = mapObject.filter(mo => mo.id === viewId);
         let view = filteredMapView[0].newView;
+        setClassView(view);
         let map = view.map;
         setMap(map);
         // Generate the renderer when the view becomes ready
         reactiveUtils.whenOnce(() => !view.updating).then(async () => {
-            selectedStyleLayer.renderer = null;
+            // selectedStyleLayer.renderer = null;
+            const popupTemplate = {
+                title: `${fieldLabel} : {${selectedField}}`,
+                content: [
+                    {
+                        type: "fields",
+                        fieldInfos: [
+                            {
+                                fieldName: selectedField,
+                                label: formatTitle(selectedField),
+                                visible: true
+                            },
+                            {
+                                fieldName: "railway",
+                                label: "Railway",
+                                visible: true
+                            },
+                            {
+                                fieldName: "division",
+                                label: "Division",
+                                visible: true
+                            },
+                            {
+                                fieldName: "route",
+                                label: "Route",
+                                visible: true
+                            },
+                            {
+                                fieldName: "section",
+                                label: "Section",
+                                visible: true
+                            },
+                        ]
+                    }
+                ]
+            };
             const typeParams = {
                 layer: selectedStyleLayer, //Layer
                 view: view,
@@ -1492,6 +1900,7 @@ const SplitScreen = ({ onLogout }) => {
                 .createRenderer(typeParams)
                 .then((response) => {
                     selectedStyleLayer.renderer = response.renderer;
+                    selectedStyleLayer.popupTemplate = popupTemplate;
                     if (!map.layers.includes(selectedStyleLayer)) {
                         map.add(selectedStyleLayer);
                     }
@@ -1502,17 +1911,143 @@ const SplitScreen = ({ onLogout }) => {
         });
         setTrackFieldRendererDropdown(false)
     };
+    const handleToggleClassBreak = () => {
+        setToggleClassBreak(true);
+        setUuniqueValueActive(false)
+    }
+    const handleClassificationRendererDropdown = () => {
+        setClassificationRendererDropdown(!classificationRendererDropdown);
+        setTrackScreenRendererDropdown(false);
+        setTrackLayerRendererDropdown(false);
+        setTrackFieldRendererDropdown(false);
+    };
+    const handleClassification = (value) => {
+        setClassification(value);
+        setClassificationRendererDropdown(false);
+    };
+    const handleBreaksChange = (e) => {
+        if (classBreakFieldType === 'integer' || classBreakFieldType === 'double') {
+            console.log(`Field Type is :${fieldType}`)
+            let breaks = parseInt(e.target.value);
+            setBreaks(breaks);
+            generateRenderers();
+        } else {
+            toast('Class Break will be applied on Integer Value Only.')
+        }
+    };
+    const generateRenderers = async () => {
+        const fieldLabel = fieldsFromLayerStyle.filter(c => c.value === selectedFieldForStyle)[0].label;
+        const classificationMethod = classification === "manual" ? "natural-breaks" : classification;
+        // Define the popup template
+        const popupTemplate = {
+            title: `${fieldLabel} : {${selectedFieldForStyle}}`,
+            content: [
+                {
+                    type: "fields",
+                    fieldInfos: [
+                        {
+                            fieldName: selectedFieldForStyle,
+                            label: `${fieldLabel} :`,
+                            visible: true
+                        },
+                        {
+                            fieldName: "railway",
+                            label: "Railway",
+                            visible: true
+                        },
+                        {
+                            fieldName: "division",
+                            label: "Division",
+                            visible: true
+                        },
+                        {
+                            fieldName: "route",
+                            label: "Route",
+                            visible: true
+                        },
+                        {
+                            fieldName: "section",
+                            label: "Section",
+                            visible: true
+                        },
+                    ]
+                }
+            ]
+        };
+        const params = {
+            layer: selectedStyleLayer,
+            valueExpression: `$feature.${selectedFieldForStyle}`,
+            view: classView,
+            classificationMethod: classificationMethod,
+            numClasses: parseInt(breaks),
+            legendOptions: {
+                title: fieldLabel
+            }
+        }
+        const rendererResponse = await colorRendererCreator.createClassBreaksRenderer(params);
+        selectedStyleLayer.renderer = rendererResponse.renderer;
+        // Set the popup template for the layer
+        selectedStyleLayer.popupTemplate = popupTemplate;
+        if (!map.layers.includes(selectedStyleLayer)) {
+            map.add(selectedStyleLayer);
+        }
+
+        if (classification === "manual") {
+            updateColorSlider(rendererResponse);
+        } else {
+            destroySlider();
+        }
+    };
+    const updateColorSlider = async (rendererResult) => {
+        const histogramResult = await histogram({
+            layer: selectedStyleLayer,
+            valueExpression: `$feature.${selectedFieldForStyle}`,
+            view: classView,
+            numBins: 100
+        });
+
+        if (!slider) {
+            const sliderContainer = document.createElement("div");
+            const container = document.createElement("div");
+            container.id = "containerDiv";
+            container.appendChild(sliderContainer);
+            classView.ui.add(container, "top-right");
+            slider = ClassedColorSlider.fromRendererResult(rendererResult, histogramResult);
+            slider.container = container;
+            slider.viewModel.precision = 1;
+            // update the renderer based on the user's input
+            const changeEventHandler = () => {
+                const renderer = selectedStyleLayer.renderer.clone();
+                renderer.classBreakInfos = slider.updateClassBreakInfos(renderer.classBreakInfos);
+                selectedStyleLayer.renderer = renderer;
+            };
+            slider.on(["thumb-change", "thumb-drag", "min-change", "max-change"], changeEventHandler);
+        } else {
+            slider.updateFromRendererResult(rendererResult, histogramResult);
+        }
+    };
+    const destroySlider = () => {
+        if (slider) {
+            let container = document.getElementById("containerDiv");
+            classView.ui.remove(container);
+            slider.container = null;
+            slider = null;
+            container = null;
+        }
+    };
     const handleRemoveStyleFromLayer = () => {
         setSelectedScreenForStyle("");
         setSelectedLayerForStyle("");
         setSelectedFieldForStyle("");
-        setLayerFromScreenStyle([]);
         setFieldsFromLayerStyle([]);
+        setClassification("")
         setSelectedStyleLayer(null);
-        if (selectedStyleLayer && map.layers && map.layers.includes(selectedStyleLayer)) {
+        setStyleCommonFields([]);
+        setLayerFromScreenStyle(prev => [...prev.filter(f => f.title === "Rail Track")]);
+        if (selectedStyleLayer && map && map.layers && map.layers.includes(selectedStyleLayer)) {
             map.remove(selectedStyleLayer);
         }
-    }
+    };
     //#endregion
     const generateRenderer = async (view, layer, field) => {
         await Promise.all([layer.load()]);
@@ -1593,7 +2128,7 @@ const SplitScreen = ({ onLogout }) => {
                         alignItems: "center",
                     }}
                 >
-                    <LogoutModal handleLogout={handleLogout} setIsOpenLogModal={setIsOpenLogModal}/>
+                    <LogoutModal handleLogout={handleLogout} setIsOpenLogModal={setIsOpenLogModal} />
                 </Modal>
             }
             <div className="splitScreen-Container">
@@ -1693,7 +2228,7 @@ const SplitScreen = ({ onLogout }) => {
                                     {
                                         openQueryBuilder &&
                                         <div className="queryBuilderDropdown">
-                                            <div className="queryBuilderDropdown-Header">
+                                            <div className="queryBuilderDropdown-Head">
                                                 <h3>Query Builder</h3><span onClick={handleQueryBuilderClose}>X</span>
                                             </div>
                                             <div className="queryBuilderDropdown-Content">
@@ -1730,7 +2265,7 @@ const SplitScreen = ({ onLogout }) => {
                                                         <div className="selectDivOption top1">
                                                             {
                                                                 layerFromMap && layerFromMap.map((layer, index) => (
-                                                                    <span key={index} onClick={() => handleLayerSelectFromMap(layer)}>{layer}</span>
+                                                                    <span key={index} onClick={() => handleLayerSelectFromMap(layer.title)}>{layer.title}</span>
                                                                 ))
                                                             }
 
@@ -2107,72 +2642,115 @@ const SplitScreen = ({ onLogout }) => {
                                         openStyleBreak &&
                                         <div className="styleBreakdropDown">
                                             <div className="queryBuilderDropdown-Header">
-                                                <h3>Style Renderer</h3><span onClick={handleStyleBreakClose}>X</span>
+                                                <div className='toggleRenderer'>
+                                                    <span
+                                                        onClick={handleToggleUniqueValue}
+                                                        className={toggleUniqueValue && uniqueValueActive ? "toggleActive" : ""}
+                                                    >Unique Value</span>
+                                                    <span
+                                                        onClick={handleToggleClassBreak}
+                                                        className={toggleClassBreak ? "toggleActive" : ""}
+                                                    >Class Break</span>
+                                                </div>
+                                                <span onClick={handleStyleBreakClose}>X</span>
                                             </div>
-                                            <div className="queryBuilderDropdown-Content">
-                                                <div className="queryBuilderDropdown-Content-Track">
-                                                    <span>TrackScreen :</span>
-                                                    <div className="selectDiv">
-                                                        <button onClick={handleRendererScreenDropdown} className='selectedDivButton'>{selectedScreenForStyle !== "" ? selectedScreenForStyle : "selecte Screen"}</button>
-                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                        </svg>
-                                                    </div>
-                                                    {
-                                                        trackScreenRendererDropdown &&
-                                                        <div className="selectDivOption">
-                                                            {
-                                                                screens && screens.map((screen) => (
-                                                                    <span key={screen.value} onClick={() => handleSelectedScreenForStyle(screen.title)}>{screen.label}</span>
-                                                                ))
-                                                            }
+                                            {
+                                                toggleUniqueValue &&
+                                                <div className="queryBuilderDropdown-Content">
+                                                    <div className="queryBuilderDropdown-Content-Track">
+                                                        <span>TrackScreen :</span>
+                                                        <div className="selectDiv">
+                                                            <button onClick={handleRendererScreenDropdown} className='selectedDivButton'>{selectedScreenForStyle !== "" ? selectedScreenForStyle : "selecte Screen"}</button>
+                                                            <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                            </svg>
+                                                        </div>
+                                                        {
+                                                            trackScreenRendererDropdown &&
+                                                            <div className="selectDivOption">
+                                                                {
+                                                                    screens && screens.map((screen) => (
+                                                                        <span key={screen.value} onClick={() => handleSelectedScreenForStyle(screen.title)}>{screen.label}</span>
+                                                                    ))
+                                                                }
 
-                                                        </div>
-                                                    }
-                                                </div>
-                                                <div className="queryBuilderDropdown-Content-Track">
-                                                    <span>Select Layer :</span>
-                                                    <div className="selectDiv">
-                                                        <button onClick={handleRendererLayerDropdown} className='selectedDivButton'>{selectedLayerForStyle !== "" ? selectedLayerForStyle : "selecte Layer"}</button>
-                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                        </svg>
+                                                            </div>
+                                                        }
                                                     </div>
-                                                    {
-                                                        trackLayerRendererDropdown &&
-                                                        <div className="selectDivOption top1">
-                                                            {
-                                                                layerFromScreenStyle && layerFromScreenStyle.map((layer, index) => (
-                                                                    <span key={index} onClick={() => handleSelectedLayerForStyle(layer)}>{layer}</span>
-                                                                ))
-                                                            }
+                                                    <div className="queryBuilderDropdown-Content-Track">
+                                                        <span>Select Layer :</span>
+                                                        <div className="selectDiv">
+                                                            <button onClick={handleRendererLayerDropdown} className='selectedDivButton'>{selectedLayerForStyle !== "" ? selectedLayerForStyle : "selecte Layer"}</button>
+                                                            <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                            </svg>
+                                                        </div>
+                                                        {
+                                                            trackLayerRendererDropdown &&
+                                                            <div className="selectDivOption top1">
+                                                                {
+                                                                    layerFromScreenStyle && layerFromScreenStyle.map((layer, index) => (
+                                                                        <span key={index} onClick={() => handleSelectedLayerForStyle(layer.title)}>{layer.title}</span>
+                                                                    ))
+                                                                }
 
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    <div className="queryBuilderDropdown-Content-Track">
+                                                        <span>Select Field :</span>
+                                                        <div className="selectDiv">
+                                                            <button onClick={handleFieldRendererDropdown} className='selectedDivButton'>{selectedFieldForStyle !== "" ? fieldLabelForStyle : "selecte Field"}</button>
+                                                            <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                            </svg>
                                                         </div>
-                                                    }
-                                                </div>
-                                                <div className="queryBuilderDropdown-Content-Track">
-                                                    <span>Select Field :</span>
-                                                    <div className="selectDiv">
-                                                        <button onClick={handleFieldRendererDropdown} className='selectedDivButton'>{selectedFieldForStyle !== "" ? fieldLabelForStyle : "selecte Field"}</button>
-                                                        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
-                                                        </svg>
+                                                        {
+                                                            trackFieldRendererDropdown &&
+                                                            <div className="selectDivOption top2">
+                                                                {
+                                                                    fieldsFromLayerStyle && fieldsFromLayerStyle.map((field, index) => (
+                                                                        <span key={index} onClick={() => handleSelectFieldForStyle(field.value)}>{field.label}</span>
+                                                                    ))
+                                                                }
+                                                            </div>
+                                                        }
                                                     </div>
                                                     {
-                                                        trackFieldRendererDropdown &&
-                                                        <div className="selectDivOption top2">
-                                                            {
-                                                                fieldsFromLayerStyle && fieldsFromLayerStyle.map((field, index) => (
-                                                                    <span key={index} onClick={() => handleSelectFieldForStyle(field.value)}>{field.label}</span>
-                                                                ))
-                                                            }
-                                                        </div>
+                                                        toggleClassBreak &&
+                                                        <>
+                                                            <div className="queryBuilderDropdown-Content-Track">
+                                                                <span>Classification :</span>
+                                                                <div className="selectDiv">
+                                                                    <button onClick={handleClassificationRendererDropdown} className='selectedDivButton'>{classification !== "" ? classification : "selecte Classification"}</button>
+                                                                    <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                        <path fillRule="evenodd" clipRule="evenodd" d="M12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L6.29289 9.70711C5.90237 9.31658 5.90237 8.68342 6.29289 8.29289C6.68342 7.90237 7.31658 7.90237 7.70711 8.29289L12 12.5858L16.2929 8.29289C16.6834 7.90237 17.3166 7.90237 17.7071 8.29289C18.0976 8.68342 18.0976 9.31658 17.7071 9.70711L12.7071 14.7071Z" fill="#000000" />
+                                                                    </svg>
+                                                                </div>
+                                                                {
+                                                                    classificationRendererDropdown &&
+                                                                    <div className="selectDivOption top3">
+                                                                        {
+                                                                            classifications && classifications.map((classi, index) => (
+                                                                                <span key={index} onClick={() => handleClassification(classi.value)}>{classi.label}</span>
+                                                                            ))
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                            <div className="queryBuilderDropdown-Content-Track">
+                                                                <span>Breaks :</span>
+                                                                <div className="selectDivInput">
+                                                                    <input type="number" max={10} min={2} value={breaks} onChange={handleBreaksChange} />
+                                                                </div>
+                                                            </div>
+                                                        </>
                                                     }
+                                                    <div className="queryBuilderDropdown-Content-button">
+                                                        <button className='btnQuery' onClick={handleRemoveStyleFromLayer}>Remove</button>
+                                                    </div>
                                                 </div>
-                                                <div className="queryBuilderDropdown-Content-button">
-                                                    <button className='btnQuery' onClick={handleRemoveStyleFromLayer}>Remove</button>
-                                                </div>
-                                            </div>
+                                            }
                                         </div>
                                     }
                                     <img title='Logout' className='filterIcon' src="/cris/images/log.png" alt="log.png" style={{ filter: "invert(100%)", color: "white" }} onClick={openLogoutMOdal} />
@@ -2184,19 +2762,23 @@ const SplitScreen = ({ onLogout }) => {
                         <div className={`splitScreen-Mainscreen grid-${numRows}-${numCols}`}>
                             {
                                 screens && screens.map((item, index) => (
-                                    <div className='mapView-div' id={`viewDiv-${item.id}`} key={item.id}
+                                    <div
+                                        className='mapView-div'
+                                        id={`viewDiv-${item.id}`}
+                                        key={item.id}
                                         style={{
                                             border: '2px solid white',
                                             margin: "2px"
                                         }}
-                                        draggable
-                                        onDragStart={(event) => handleDragStart(event, index)}
-                                        onDragOver={(event) => handleDragOver(event, index)}
-                                        onDrop={(event) => handleDrop(event, index)}
                                     >
                                         {
                                             item.label &&
-                                            <div id={item.id} className='mapView-div-header'>
+                                            <div id={item.id} className='mapView-div-header'
+                                                draggable
+                                                onDragStart={(event) => handleDragStart(event, index)}
+                                                onDragOver={(event) => handleDragOver(event, index)}
+                                                onDrop={(event) => handleDrop(event, index)}
+                                            >
                                                 <h3>{item.label}</h3>
                                                 <span
                                                     onClick={() => handleCloseMapDiv(item.id)}
@@ -2205,6 +2787,34 @@ const SplitScreen = ({ onLogout }) => {
                                         }
                                         <div className="layerContainer" id={`layerContainer-${item.id}`}>
                                             <div className="tableDiv" id={`tableDiv-${item.id}`}></div>
+                                            <div id="resultTable">
+                                                <div id="heading">
+                                                    <h4>Query Result Data</h4>
+                                                    <button onClick={exportToExcel}>Export</button>
+                                                </div>
+                                                <div id="tableDiv">
+                                                    <table>
+                                                        <thead>
+                                                            <tr>
+                                                                <th>SL. No.</th>
+                                                                {tableHeading.map((header, index) => (
+                                                                    <th key={index}>{header}</th>
+                                                                ))}
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {tableData.map((row, rowIndex) => (
+                                                                <tr key={rowIndex}>
+                                                                    <td>{rowIndex + 1}</td>
+                                                                    {row.map((cell, cellIndex) => (
+                                                                        <td key={cellIndex}>{cell}</td>
+                                                                    ))}
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 ))
@@ -2216,4 +2826,4 @@ const SplitScreen = ({ onLogout }) => {
         </>
     )
 }
-export default SplitScreen;
+export default SplitScreen;  
