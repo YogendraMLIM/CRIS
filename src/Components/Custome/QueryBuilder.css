@@ -1,0 +1,12 @@
+.field-row{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    
+}
+.container{
+    padding: 10px 10px 10px 10px;
+    display: flex;
+    flex-direction: column;    
+    gap: 5px;
+}
